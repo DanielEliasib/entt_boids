@@ -5,6 +5,7 @@
 #include <rlgl.h>
 
 #include <base_definitions.hpp>
+#include <collision_definitions.hpp>
 
 struct render_process : entt::process<render_process, std::uint32_t> {
     using delta_type = std::uint32_t;
@@ -68,4 +69,24 @@ struct movement_process : entt::process<movement_process, std::uint32_t> {
 
   protected:
     entt::registry &registry;
+};
+
+struct vision_process : entt::process<vision_process, std::uint32_t> {
+	using delta_type = std::uint32_t;
+
+	vision_process(entt::registry &registry) : registry(registry) {}
+
+	void update(delta_type delta_time, void *) {
+		auto boids_view = registry.view<transform, movement>();
+		for (auto [entity, transform, movement] : boids_view.each()) {
+			Vector2 hit_point;
+			if(raycast(registry, transform.position, transform.direction, 100, &hit_point))
+			{
+				DrawLineEx(transform.position, hit_point, 1.0f, RED);
+			}
+		}
+	}
+
+  protected:
+	entt::registry &registry;
 };

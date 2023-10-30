@@ -2,7 +2,6 @@
 #include <base_processors.hpp>
 #include <boids.hpp>
 #include <raymath.h>
-#include <collision_definitions.hpp>
 #include <iostream>
 #include <raylib.h>
 
@@ -30,6 +29,7 @@ int main() {
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
+	render_scheduler.attach<vision_process>(registry);
 
     boids::create_n_boids(registry, 100, Vector2{400, 300}, 100);
 
