@@ -33,33 +33,33 @@ static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
     direction = Vector2Normalize(direction);
 
     for (auto [entity, transform, collider] : rect_collider_view.each()) {
-        std::vector<Vector2> collisions;
-        collisions.reserve(4);
-
         float angle = atan2(transform.direction.y, transform.direction.x);
+
         auto RotationMatrix = MatrixRotateZ(angle);
+        Vector2 rotated_identity =
+            Vector2Transform(Vector2{1, 0}, RotationMatrix);
         auto TranslatedMatrix =
             MatrixTranslate(transform.position.x, transform.position.y, 0);
         auto FullMatrix = MatrixMultiply(TranslatedMatrix, RotationMatrix);
-        auto InvertedFullMatrix = MatrixInvert(FullMatrix);
 
         BoundingBox box = {Vector3{0 - collider.extents.x / 2,
                                    0 - collider.extents.y / 2, -10},
                            Vector3{0 + collider.extents.x / 2,
                                    0 + collider.extents.y / 2, 10}};
 
-        Ray ray = {Vector3Transform(Vector3{origin.x, origin.y, 0},
-                                    MatrixInvert(TranslatedMatrix)),
-                   Vector3Transform(Vector3{direction.x, direction.y, 0},
-                                    MatrixInvert(RotationMatrix))};
+		Vector2 relative_origin = Vector2Subtract(origin, transform.position);
+		Vector3 ray_origin = Vector3Transform(Vector3{relative_origin.x, relative_origin.y, 0}, MatrixInvert(RotationMatrix));
+		Vector3 ray_direction = Vector3Transform(Vector3{direction.x, direction.y, 0}, MatrixInvert(RotationMatrix));
 
+        Ray ray = {ray_origin, ray_direction};
         auto hit = GetRayCollisionBox(ray, box);
 
         if (hit.hit) {
             auto hit_point =
-                Vector2Transform(Vector2{hit.point.x, hit.point.y}, FullMatrix);
+                Vector3Transform(Vector3{hit.point.x, hit.point.y, 0}, RotationMatrix);
+			hit_point = Vector3Transform(hit_point, TranslatedMatrix);
             if (collision_point != nullptr) {
-                *collision_point = hit_point;
+                *collision_point = Vector2{hit_point.x, hit_point.y};
             }
             return true;
         }

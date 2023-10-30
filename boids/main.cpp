@@ -44,8 +44,11 @@ int main() {
     std::cout << "Corner size: " << corners.size() << "\n";
 
     auto collision_entity = registry.create();
+
+	Vector2 rect_direction = Vector2Normalize(Vector2{static_cast<float>(GetRandomValue(-100, 100)), static_cast<float>(GetRandomValue(-100, 100))});
     registry.emplace<transform>(collision_entity,
-                                transform{Vector2{400, 300}, Vector2{1, 0}});
+                                transform{Vector2{400, 300}, rect_direction});
+
     registry.emplace<rect_collider>(collision_entity,
                                     rect_collider(false, extents));
     registry.emplace<renderable>(collision_entity,
