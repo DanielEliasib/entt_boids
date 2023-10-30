@@ -1,5 +1,6 @@
 #pragma once
 
+#include <base_definitions.hpp>
 #include <boids_definitions.hpp>
 #include <entt.hpp>
 #include <raylib.h>
