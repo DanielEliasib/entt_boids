@@ -1,0 +1,78 @@
+[
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "../obj/boids/debug/boids.o",
+      "include/boids.hpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/include/boids.hpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/boids.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "../obj/boids/debug/boids_definitions.o",
+      "include/boids_definitions.hpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/include/boids_definitions.hpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/boids_definitions.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "../obj/boids/debug/entt.o",
+      "include/entt.hpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/include/entt.hpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/entt.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "../obj/boids/debug/main.o",
+      "main.cpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/main.cpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/main.o"
+  },
+]
