@@ -1,4 +1,6 @@
-#pragma once
+#ifndef BASE_PROC_HPP
+#define BASE_PROC_HPP
+
 #include <entt.hpp>
 #include <raylib.h>
 #include <raymath.h>
@@ -90,3 +92,5 @@ struct vision_process : entt::process<vision_process, std::uint32_t> {
   protected:
 	entt::registry &registry;
 };
+
+#endif // BASE_PROC_HPP

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef BOIDS_HPP
+#define BOIDS_HPP
 
 #include <base_definitions.hpp>
 #include <boids_definitions.hpp>
@@ -50,3 +51,5 @@ static void create_n_boids(entt::registry &registry, int n,
     }
 }
 } // namespace boids
+
+#endif // BOIDS_HPP

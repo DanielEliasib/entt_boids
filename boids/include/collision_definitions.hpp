@@ -1,3 +1,6 @@
+#ifndef COLLISION_DEF_HPP
+#define COLLISION_DEF_HPP
+
 #include "base_definitions.hpp"
 #include "raylib.h"
 #include <entt.hpp>
@@ -32,7 +35,7 @@ static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
     direction = Vector2Normalize(direction);
 
 	//? should we reserve some space?
-	std::vector<Vector2> hit_points;
+	std::vector<Vector3> hit_points;
 
     for (auto [entity, transform, collider] : rect_collider_view.each()) {
         float angle = atan2(transform.direction.y, transform.direction.x);
@@ -61,9 +64,9 @@ static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
         Ray ray = {ray_origin, ray_direction};
         auto hit = GetRayCollisionBox(ray, box);
 
-        if (hit.hit) {
+        if (hit.hit && hit.distance <= distance) {
             auto hit_point = Vector3Transform(hit.point, transform_matrix);
-			hit_points.push_back(Vector2{hit_point.x, hit_point.y});
+			hit_points.push_back(Vector3{hit_point.x, hit_point.y, hit.distance});
         }
     }
 
@@ -72,14 +75,16 @@ static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
 		return false;
 	}
 
-	std::sort(hit_points.begin(), hit_points.end(), [&origin](Vector2 a, Vector2 b) {
-		return Vector2DistanceSqr(a, origin) < Vector2DistanceSqr(b, origin);
+	std::sort(hit_points.begin(), hit_points.end(), [&origin](Vector3 a, Vector3 b) {
+		return a.z < b.z;
 	});
 
 	if(collision_point != nullptr)
 	{
-		*collision_point = hit_points[0];
+		*collision_point = Vector2{hit_points[0].x, hit_points[0].y};
 	}
 
     return true;
 }
+
+#endif // COLLISION_DEF_HPP

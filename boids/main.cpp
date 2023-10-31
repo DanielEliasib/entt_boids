@@ -75,24 +75,27 @@ void create_screen_walls(entt::registry &registry) {
                                  renderable{BLUE, 1, vertical_corners});
 }
 
-void random_block(entt::registry& registry)
-{
-	int width = GetScreenWidth();
-	int height = GetScreenHeight();
+void random_block(entt::registry &registry) {
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
 
-	int horizontal_lenght = GetRandomValue(50, 200);
-	int vertical_lenght = GetRandomValue(50, 200);
+    int horizontal_lenght = GetRandomValue(50, 200);
+    int vertical_lenght = GetRandomValue(50, 200);
 
-	std::vector<Vector2> corners;
-	corners.resize(4);
+    std::vector<Vector2> corners;
+    corners.resize(4);
 
-	rect_collider collider(false, Vector2{ static_cast<float>(horizontal_lenght), static_cast<float>(vertical_lenght) });
-	collider.generate_conners(corners);
+    rect_collider collider(false, Vector2{static_cast<float>(horizontal_lenght),
+                                          static_cast<float>(vertical_lenght)});
+    collider.generate_conners(corners);
 
-	auto block = registry.create();
-	registry.emplace<transform>(block, transform{ Vector2{static_cast<float>(GetRandomValue(0, width)), static_cast<float>(GetRandomValue(0, height))}, Vector2{1, 0} });
-	registry.emplace<rect_collider>(block, collider);
-	registry.emplace<renderable>(block, renderable{ BLUE, 1, corners});
+    auto block = registry.create();
+    registry.emplace<transform>(
+        block, transform{Vector2{static_cast<float>(GetRandomValue(0, width)),
+                                 static_cast<float>(GetRandomValue(0, height))},
+                         Vector2{1, 0}});
+    registry.emplace<rect_collider>(block, collider);
+    registry.emplace<renderable>(block, renderable{BLUE, 1, corners});
 }
 
 int main() {
@@ -102,6 +105,7 @@ int main() {
 
     entt::scheduler general_scheduler;
     general_scheduler.attach<movement_process>(registry);
+    general_scheduler.attach<boids::collision_avoidance_process>(registry);
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
@@ -110,7 +114,10 @@ int main() {
     boids::create_n_boids(registry, 100, Vector2{400, 300}, 100);
 
     create_screen_walls(registry);
-	random_block(registry);
+
+    for (int i = 0; i < 10; i++) {
+        random_block(registry);
+    }
 
     Vector2 random_screen_position_1;
     Vector2 random_screen_position_2;

@@ -1,4 +1,6 @@
-#pragma once
+#ifndef BASE_DEF_HPP
+#define BASE_DEF_HPP
+
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
@@ -25,4 +27,4 @@ struct renderable {
     }
 };
 
-
+#endif // BASE_DEF_HPP
