@@ -11,6 +11,44 @@
       "-std=c++17",
       "-c",
       "-o",
+      "../obj/boids/debug/base_definitions.o",
+      "include/base_definitions.hpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/include/base_definitions.hpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/base_definitions.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "../obj/boids/debug/base_processors.o",
+      "include/base_processors.hpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/include/base_processors.hpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/base_processors.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
       "../obj/boids/debug/boids.o",
       "include/boids.hpp"
     ],
@@ -36,6 +74,25 @@
     "directory": "/home/dan/src/ecs_boids/boids",
     "file": "/home/dan/src/ecs_boids/boids/include/boids_definitions.hpp",
     "output": "/home/dan/src/ecs_boids/obj/boids/debug/boids_definitions.o"
+  },
+  {
+    "arguments": [
+      "g++",
+      "-MD",
+      "-MP",
+      "-DDEBUG",
+      "-Iinclude",
+      "-I../raylib-4.5.0_linux_amd64/include",
+      "-g",
+      "-std=c++17",
+      "-c",
+      "-o",
+      "../obj/boids/debug/collision_definitions.o",
+      "include/collision_definitions.hpp"
+    ],
+    "directory": "/home/dan/src/ecs_boids/boids",
+    "file": "/home/dan/src/ecs_boids/boids/include/collision_definitions.hpp",
+    "output": "/home/dan/src/ecs_boids/obj/boids/debug/collision_definitions.o"
   },
   {
     "arguments": [

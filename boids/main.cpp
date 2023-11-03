@@ -1,3 +1,4 @@
+#include "boids_definitions.hpp"
 #include <base_definitions.hpp>
 #include <base_processors.hpp>
 #include <boids.hpp>
@@ -5,7 +6,7 @@
 #include <raylib.h>
 #include <raymath.h>
 
-bool random_raycast(entt::registry &registry, Vector2 *collision_point,
+bool random_raycast(entt::registry &registry, RayCollision *collision_point,
                     Vector2 *random_screen_position_1,
                     Vector2 *random_screen_position_2) {
 
@@ -101,15 +102,19 @@ void random_block(entt::registry &registry) {
 int main() {
     InitWindow(800, 600, "BOIDS");
 
+	std::unordered_map<std::uint64_t, std::unordered_set<entt::entity>> cells_map;
+
     entt::registry registry = entt::registry();
 
     entt::scheduler general_scheduler;
+	general_scheduler.attach<boids::boid_hashing_process>(registry, &cells_map, 30);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<boids::collision_avoidance_process>(registry);
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
     render_scheduler.attach<vision_process>(registry);
+	render_scheduler.attach<boids::cell_renderer_process>(registry, &cells_map, 30);
 
     boids::create_n_boids(registry, 100, Vector2{400, 300}, 100);
 
@@ -122,7 +127,7 @@ int main() {
     Vector2 random_screen_position_1;
     Vector2 random_screen_position_2;
 
-    Vector2 collision_point;
+    RayCollision collision_point;
     bool intercepted =
         random_raycast(registry, &collision_point, &random_screen_position_1,
                        &random_screen_position_2);
@@ -143,7 +148,7 @@ int main() {
         }
 
         if (intercepted) {
-            DrawCircleV(collision_point, 20, RED);
+            DrawCircleV({collision_point.point.x, collision_point.point.y}, 20, RED);
         }
 
         auto direction = Vector2Scale(

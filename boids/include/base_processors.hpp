@@ -81,10 +81,10 @@ struct vision_process : entt::process<vision_process, std::uint32_t> {
 	void update(delta_type delta_time, void *) {
 		auto boids_view = registry.view<transform, movement>();
 		for (auto [entity, transform, movement] : boids_view.each()) {
-			Vector2 hit_point;
+			RayCollision hit_point;
 			if(raycast(registry, transform.position, transform.direction, 100, &hit_point))
 			{
-				DrawLineEx(transform.position, hit_point, 1.0f, RED);
+				DrawLineEx(transform.position, {hit_point.point.x, hit_point.point.y}, 1.0f, RED);
 			}
 		}
 	}

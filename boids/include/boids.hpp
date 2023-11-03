@@ -18,6 +18,7 @@ static void create_boid(entt::registry &registry, Vector2 position,
 
     registry.emplace<transform>(entity, transform{position, direction});
     registry.emplace<movement>(entity, movement{velocity});
+	registry.emplace<boid>(entity, boid{-1});
     registry.emplace<renderable>(entity,
                                  renderable(DARKGRAY, static_cast<float>(side), original_triangle));
 }

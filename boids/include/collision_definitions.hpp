@@ -29,13 +29,13 @@ struct circle_collider : collider {
 };
 
 static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
-                    float distance = 500, Vector2 *collision_point = nullptr) {
+                    float distance = 500, RayCollision *collision_point = nullptr) {
     // rect collisions first
     auto rect_collider_view = registry.view<transform, rect_collider>();
     direction = Vector2Normalize(direction);
 
 	//? should we reserve some space?
-	std::vector<Vector3> hit_points;
+	std::vector<RayCollision> hit_points;
 
     for (auto [entity, transform, collider] : rect_collider_view.each()) {
         float angle = atan2(transform.direction.y, transform.direction.x);
@@ -66,7 +66,8 @@ static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
 
         if (hit.hit && hit.distance <= distance) {
             auto hit_point = Vector3Transform(hit.point, transform_matrix);
-			hit_points.push_back(Vector3{hit_point.x, hit_point.y, hit.distance});
+			auto hit_normal = Vector3Transform(hit.normal, rotation_matrix);
+			hit_points.push_back(RayCollision{hit.hit, hit.distance, hit_point, hit_normal});
         }
     }
 
@@ -75,13 +76,13 @@ static bool raycast(entt::registry &registry, Vector2 origin, Vector2 direction,
 		return false;
 	}
 
-	std::sort(hit_points.begin(), hit_points.end(), [&origin](Vector3 a, Vector3 b) {
-		return a.z < b.z;
+	std::sort(hit_points.begin(), hit_points.end(), [&origin](RayCollision a, RayCollision b) {
+		return a.distance < b.distance;
 	});
 
 	if(collision_point != nullptr)
 	{
-		*collision_point = Vector2{hit_points[0].x, hit_points[0].y};
+		*collision_point = hit_points[0];
 	}
 
     return true;
