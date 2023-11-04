@@ -11,7 +11,7 @@
 
 namespace boids {
 
-static void create_boid(entt::registry &registry, Vector2 position,
+static entt::entity create_boid(entt::registry &registry, Vector2 position,
                         Vector2 direction, Vector2 velocity, int side, std::vector<Vector2> original_triangle) {
 
     auto entity = registry.create();
@@ -21,6 +21,8 @@ static void create_boid(entt::registry &registry, Vector2 position,
 	registry.emplace<boid>(entity, boid{-1});
     registry.emplace<renderable>(entity,
                                  renderable(DARKGRAY, static_cast<float>(side), original_triangle));
+
+	return entity;
 }
 
 static void create_n_boids(entt::registry &registry, int n,
@@ -32,6 +34,10 @@ static void create_n_boids(entt::registry &registry, int n,
 
 	int side = 10;
     float height = sqrt(pow(side, 2) - pow(side / 2, 2));
+
+	auto grid = registry.create();
+	registry.emplace<boids::grid>(grid, boids::grid(20));
+	auto grid_data = registry.get<boids::grid>(grid);
 
 	Vector2 v1 = Vector2{0 - height/2, 0 - side/2.0f};
 	Vector2 v2 = Vector2{0 - height/2, 0 + side/2.0f};
@@ -48,7 +54,10 @@ static void create_n_boids(entt::registry &registry, int n,
 
         Vector2 direction = Vector2{random_float(-1, 1), random_float(-1, 1)};
 
-        create_boid(registry, position, direction, Vector2Scale(direction, 10), side, original_triangle);
+		auto hash = grid_data.hash_position(position);
+		
+        auto boid = create_boid(registry, position, direction, Vector2Scale(direction, 10), side, original_triangle);
+		grid_data.add_boid_to_cell(boid, hash);
     }
 }
 } // namespace boids

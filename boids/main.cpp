@@ -102,19 +102,17 @@ void random_block(entt::registry &registry) {
 int main() {
     InitWindow(800, 600, "BOIDS");
 
-	std::unordered_map<std::uint64_t, std::unordered_set<entt::entity>> cells_map;
-
     entt::registry registry = entt::registry();
 
     entt::scheduler general_scheduler;
-	general_scheduler.attach<boids::boid_hashing_process>(registry, &cells_map, 30);
+	general_scheduler.attach<boids::boid_hashing_process>(registry);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<boids::collision_avoidance_process>(registry);
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
     render_scheduler.attach<vision_process>(registry);
-	render_scheduler.attach<boids::cell_renderer_process>(registry, &cells_map, 30);
+	render_scheduler.attach<boids::cell_renderer_process>(registry);
 
     boids::create_n_boids(registry, 100, Vector2{400, 300}, 100);
 

@@ -16,6 +16,71 @@ struct boid {
     int current_cell_id;
 };
 
+struct grid {
+    int cell_size;
+    int window_width;
+    int window_height;
+    int cell_count;
+	
+	std::unordered_map<int, std::unordered_set<entt::entity>>
+        cell_to_boids;
+    
+	grid(int cell_size) : cell_size(cell_size) {
+        window_width = GetScreenWidth();
+        window_height = GetScreenHeight();
+        cell_count = (window_width / cell_size) * (window_height / cell_size);
+		cell_to_boids = std::unordered_map<int, std::unordered_set<entt::entity>>();
+    }
+
+    int hash_position(Vector2 position) {
+        int x = static_cast<int>(position.x);
+        int y = static_cast<int>(position.y);
+        int cell_x = x / cell_size;
+        int cell_y = y / cell_size;
+
+        return cell_x + cell_y * (window_width / cell_size); // 2D to 1D
+    }
+
+    // grid cell id to 2D index
+    std::pair<int, int> cell_id_to_index(int cell_id) {
+        int x = cell_id % (window_width / cell_size);
+        int y = cell_id / (window_width / cell_size);
+
+        return {x, y};
+    }
+
+    bool is_boid_in_cell(entt::entity entity, int cell_id) {
+        if (cell_to_boids.find(cell_id) == cell_to_boids.end())
+            return false;
+
+        return cell_to_boids[cell_id].find(entity) !=
+               cell_to_boids[cell_id].end();
+    }
+
+    bool is_cell_empty(int cell_id) {
+        if (cell_to_boids.find(cell_id) == cell_to_boids.end())
+            return true;
+
+        return cell_to_boids[cell_id].size() == 0;
+    }
+
+    void add_boid_to_cell(entt::entity entity, int cell_id) {
+        if (cell_to_boids.find(cell_id) == cell_to_boids.end()) {
+            auto set = std::unordered_set<entt::entity>();
+			cell_to_boids[cell_id] = set;
+        }
+
+        cell_to_boids[cell_id].insert(entity);
+    }
+
+    void remove_boid_from_cell(entt::entity entity, int cell_id) {
+        if (cell_to_boids.find(cell_id) == cell_to_boids.end())
+            return;
+
+        cell_to_boids[cell_id].erase(entity);
+    }
+};
+
 struct collision_avoidance_process
     : entt::process<collision_avoidance_process, std::uint32_t> {
     using delta_type = std::uint32_t;
@@ -55,109 +120,72 @@ struct boid_hashing_process
     : entt::process<boid_hashing_process, std::uint32_t> {
     using delta_type = std::uint32_t;
 
-    boid_hashing_process(
-        entt::registry &registry,
-        std::unordered_map<std::uint64_t, std::unordered_set<entt::entity>>* cell_to_boids,
-        int cell_size)
-        : registry(registry), cells_map(cell_to_boids), cell_size(cell_size) {
-        window_width = GetScreenWidth();
-        window_height = GetScreenHeight();
-    }
-
-    std::uint64_t hash_position(Vector2 position) {
-        int x = static_cast<int>(position.x);
-        int y = static_cast<int>(position.y);
-        int cell_x = x / cell_size;
-        int cell_y = y / cell_size;
-
-        return cell_x + cell_y * (window_width / cell_size); // 2D to 1D
-    }
+    boid_hashing_process(entt::registry &registry) : registry(registry) {}
 
     void update(delta_type delta_time, void *) {
         auto boids_view = registry.view<transform, movement, boid>();
+        auto grid_view = registry.view<grid>();
+        auto grid_entity = grid_view.front();
+
+        if (grid_entity == entt::null)
+            return;
+
+        auto& grid_data = registry.get<grid>(grid_entity);
+
         for (auto [entity, transform_data, movement_data, boid_data] :
              boids_view.each()) {
 
-            auto hash = hash_position(transform_data.position);
-
-            // check if cellID_to_boids[hash] exists
-            if (cells_map->find(hash) == cells_map->end()) {
-                auto set = std::unordered_set<entt::entity>();
-                cells_map->insert({hash, set});
-			}
-
-			if(boid_data.current_cell_id == -1){
-				(*cells_map)[hash].insert(entity);
-				boid_data.current_cell_id = hash;
-				return;
-			}
+            auto hash = grid_data.hash_position(transform_data.position);
 
             if (boid_data.current_cell_id != hash) {
-                ((*cells_map)[boid_data.current_cell_id]).erase(entity);
-                (*cells_map)[hash].insert(entity);
+                grid_data.remove_boid_from_cell(entity,
+                                                boid_data.current_cell_id);
+                grid_data.add_boid_to_cell(entity, hash);
 
                 boid_data.current_cell_id = hash;
-
                 return;
             }
-			if((*cells_map)[hash].find(entity) == (*cells_map)[hash].end())
-			{
-				(*cells_map)[hash].insert(entity);
-				boid_data.current_cell_id = hash;
-			}
+
+            if (!grid_data.is_boid_in_cell(entity, hash)) {
+                grid_data.add_boid_to_cell(entity, hash);
+                boid_data.current_cell_id = hash;
+            }
         }
     }
 
   protected:
     entt::registry &registry;
-    std::unordered_map<std::uint64_t, std::unordered_set<entt::entity>>*
-        cells_map;
-
-    int cell_size = 10;
-    int window_width = 800;
-    int window_height = 600;
 };
 
 struct cell_renderer_process
     : entt::process<cell_renderer_process, std::uint32_t> {
     using delta_type = std::uint32_t;
 
-    cell_renderer_process(
-        entt::registry &registry,
-        std::unordered_map<std::uint64_t, std::unordered_set<entt::entity>>* cell_to_boids,
-        int cell_size)
-        : registry(registry), cells_map(cell_to_boids), cell_size(cell_size) {
-        window_width = GetScreenWidth();
-        window_height = GetScreenHeight();
+    cell_renderer_process(entt::registry &registry) : registry(registry) {}
+
+    void update(delta_type delta_time, void *) {
+        auto grid_view = registry.view<grid>();
+        auto grid_entity = grid_view.front();
+
+        if (grid_entity == entt::null)
+            return;
+
+        auto& grid_data = registry.get<grid>(grid_entity);
+
+        for (int cell_id = 0; cell_id < grid_data.cell_count; cell_id++) {
+            auto [x, y] = grid_data.cell_id_to_index(cell_id);
+
+            Color color = !grid_data.is_cell_empty(cell_id)
+                              ? GREEN
+                              : ColorAlpha(GRAY, 0.1f);
+
+            DrawRectangleLines(x * grid_data.cell_size, y * grid_data.cell_size,
+                               grid_data.cell_size, grid_data.cell_size, color);
+        }
     }
-
-	void update(delta_type delta_time, void *) 
-	{
-		for(int i = 0; i < window_width / cell_size; i++)
-		{
-			for(int j = 0; j < window_height / cell_size; j++)
-			{
-				int cell_id = i + j * (window_width / cell_size);
-
-				bool is_boid_in_cell = cells_map->find(cell_id) != cells_map->end();
-				if(is_boid_in_cell){
-					is_boid_in_cell = (*cells_map)[cell_id].size() > 0;
-				}
-				Color color = is_boid_in_cell ? GREEN : ColorAlpha(GRAY, 0.1f);
-					
-				DrawRectangleLines(i * cell_size, j * cell_size, cell_size, cell_size, color);
-			}
-		}
-	}
 
   protected:
     entt::registry &registry;
-    std::unordered_map<std::uint64_t, std::unordered_set<entt::entity>>*
-        cells_map;
-
-    int cell_size = 10;
-    int window_width = 800;
-    int window_height = 600;
 };
 
 } // namespace boids
