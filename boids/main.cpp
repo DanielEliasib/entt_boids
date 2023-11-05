@@ -80,8 +80,8 @@ void random_block(entt::registry &registry) {
     int width = GetScreenWidth();
     int height = GetScreenHeight();
 
-    int horizontal_lenght = GetRandomValue(50, 200);
-    int vertical_lenght = GetRandomValue(50, 200);
+    int horizontal_lenght = GetRandomValue(50, 100);
+    int vertical_lenght = GetRandomValue(50, 100);
 
     std::vector<Vector2> corners;
     corners.resize(4);
@@ -92,9 +92,11 @@ void random_block(entt::registry &registry) {
 
     auto block = registry.create();
     registry.emplace<transform>(
-        block, transform{Vector2{static_cast<float>(GetRandomValue(0, width)),
-                                 static_cast<float>(GetRandomValue(0, height))},
-                         Vector2{1, 0}});
+        block,
+        transform{Vector2{static_cast<float>(GetRandomValue(0, width)),
+                          static_cast<float>(GetRandomValue(0, height))},
+                  Vector2Normalize({GetRandomValue(-100, 100) / 100.0f,
+                                    GetRandomValue(-100, 100) / 100.0f})});
     registry.emplace<rect_collider>(block, collider);
     registry.emplace<renderable>(block, renderable{BLUE, 1, corners});
 }
@@ -105,22 +107,37 @@ int main() {
     entt::registry registry = entt::registry();
 
     entt::scheduler general_scheduler;
-	general_scheduler.attach<boids::boid_hashing_process>(registry);
+    general_scheduler.attach<boids::boid_hashing_process>(registry);
     general_scheduler.attach<movement_process>(registry);
+    general_scheduler.attach<collision_process>(registry);
     general_scheduler.attach<boids::collision_avoidance_process>(registry);
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
     render_scheduler.attach<vision_process>(registry);
-	render_scheduler.attach<boids::cell_renderer_process>(registry);
+    render_scheduler.attach<boids::cell_renderer_process>(registry);
 
-    boids::create_n_boids(registry, 100, Vector2{400, 300}, 100);
+    boids::create_n_boids(registry, 350, Vector2{400, 300}, 330);
 
     create_screen_walls(registry);
 
     for (int i = 0; i < 10; i++) {
         random_block(registry);
     }
+
+    //    rect_collider collider(false, Vector2{300,
+    //                                          150});
+    // std::vector<Vector2> corners;
+    // corners.resize(4);
+    //    collider.generate_conners(corners);
+    //
+    //    auto block = registry.create();
+    //    registry.emplace<transform>(
+    //        block, transform{Vector2{400,
+    //                                 300},
+    //                         Vector2Normalize(Vector2{1, 1})});
+    //    registry.emplace<rect_collider>(block, collider);
+    //    registry.emplace<renderable>(block, renderable{BLUE, 1, corners});
 
     Vector2 random_screen_position_1;
     Vector2 random_screen_position_2;
@@ -146,7 +163,8 @@ int main() {
         }
 
         if (intercepted) {
-            DrawCircleV({collision_point.point.x, collision_point.point.y}, 20, RED);
+            DrawCircleV({collision_point.point.x, collision_point.point.y}, 20,
+                        RED);
         }
 
         auto direction = Vector2Scale(

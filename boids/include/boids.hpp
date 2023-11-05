@@ -56,7 +56,7 @@ static void create_n_boids(entt::registry &registry, int n,
 
 		auto hash = grid_data.hash_position(position);
 		
-        auto boid = create_boid(registry, position, direction, Vector2Scale(direction, 10), side, original_triangle);
+        auto boid = create_boid(registry, position, direction, Vector2Scale(direction, 20), side, original_triangle);
 		grid_data.add_boid_to_cell(boid, hash);
     }
 }
