@@ -33,8 +33,8 @@ struct grid {
     }
 
     int hash_position(Vector2 position) {
-        int x = static_cast<int>(position.x);
-        int y = static_cast<int>(position.y);
+        int x = static_cast<int>(floor(position.x));
+        int y = static_cast<int>(floor(position.y));
         int cell_x = x / cell_size;
         int cell_y = y / cell_size;
 
@@ -79,6 +79,13 @@ struct grid {
 
         cell_to_boids[cell_id].erase(entity);
     }
+
+	void get_boids_in_cell(int cell_id, std::unordered_set<entt::entity>& boids) {
+		if (cell_to_boids.find(cell_id) == cell_to_boids.end())
+			return;
+
+		boids = cell_to_boids[cell_id];
+	}
 };
 
 struct collision_avoidance_process
@@ -137,19 +144,25 @@ struct boid_hashing_process
 
             auto hash = grid_data.hash_position(transform_data.position);
 
-            if (boid_data.current_cell_id != hash) {
-                grid_data.remove_boid_from_cell(entity,
-                                                boid_data.current_cell_id);
-                grid_data.add_boid_to_cell(entity, hash);
+			if(boid_data.current_cell_id != -1){
+				grid_data.remove_boid_from_cell(entity, boid_data.current_cell_id);
+			}
+			grid_data.add_boid_to_cell(entity, hash);
+			boid_data.current_cell_id = hash;
 
-                boid_data.current_cell_id = hash;
-                return;
-            }
-
-            if (!grid_data.is_boid_in_cell(entity, hash)) {
-                grid_data.add_boid_to_cell(entity, hash);
-                boid_data.current_cell_id = hash;
-            }
+            // if (boid_data.current_cell_id != hash) {
+            //     grid_data.remove_boid_from_cell(entity,
+            //                                     boid_data.current_cell_id);
+            //     grid_data.add_boid_to_cell(entity, hash);
+            //
+            //     boid_data.current_cell_id = hash;
+            //     return;
+            // }
+            //
+            // if (!grid_data.is_boid_in_cell(entity, hash)) {
+            //     grid_data.add_boid_to_cell(entity, hash);
+            //     boid_data.current_cell_id = hash;
+            // }
         }
     }
 
@@ -176,7 +189,7 @@ struct cell_renderer_process
             auto [x, y] = grid_data.cell_id_to_index(cell_id);
 
             Color color = !grid_data.is_cell_empty(cell_id)
-                              ? GREEN
+                              ? RED
                               : ColorAlpha(GRAY, 0.1f);
 
             DrawRectangleLines(x * grid_data.cell_size, y * grid_data.cell_size,

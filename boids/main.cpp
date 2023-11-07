@@ -26,8 +26,8 @@ void create_screen_walls(entt::registry &registry) {
     int width = GetScreenWidth();
     int height = GetScreenHeight();
 
-    int horizontal_lenght = width;
-    int vertical_lenght = height;
+    int horizontal_lenght = width*2;
+    int vertical_lenght = height*2;
 
     auto top_wall = registry.create();
     auto bottom_wall = registry.create();
@@ -103,11 +103,15 @@ void random_block(entt::registry &registry) {
 
 int main() {
     InitWindow(800, 600, "BOIDS");
+	SetRandomSeed(100);
 
     entt::registry registry = entt::registry();
 
-    entt::scheduler general_scheduler;
+    boids::create_n_boids(registry, 450, Vector2{400, 300}, 330);
+    
+	entt::scheduler general_scheduler;
     general_scheduler.attach<boids::boid_hashing_process>(registry);
+	general_scheduler.attach<boids::boid_separation_process>(registry);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<collision_process>(registry);
     general_scheduler.attach<boids::collision_avoidance_process>(registry);
@@ -116,8 +120,6 @@ int main() {
     render_scheduler.attach<render_process>(registry);
     render_scheduler.attach<vision_process>(registry);
     render_scheduler.attach<boids::cell_renderer_process>(registry);
-
-    boids::create_n_boids(registry, 350, Vector2{400, 300}, 330);
 
     create_screen_walls(registry);
 
