@@ -107,7 +107,7 @@ int main() {
 
     entt::registry registry = entt::registry();
 
-    boids::create_n_boids(registry, 450, Vector2{400, 300}, 330);
+    boids::create_n_boids(registry, 400, Vector2{400, 300}, 330);
     
 	entt::scheduler general_scheduler;
     general_scheduler.attach<boids::boid_hashing_process>(registry);

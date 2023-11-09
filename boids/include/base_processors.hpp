@@ -1,23 +1,27 @@
 #ifndef BASE_PROC_HPP
 #define BASE_PROC_HPP
 
-#include <cmath>
-#include <entt.hpp>
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
 
 #include <base_definitions.hpp>
+#include <cmath>
 #include <collision_definitions.hpp>
+#include <entt.hpp>
 
-struct render_process : entt::process<render_process, std::uint32_t> {
+struct render_process : entt::process<render_process, std::uint32_t>
+{
     using delta_type = std::uint32_t;
 
-    render_process(entt::registry &registry) : registry(registry) {}
+    render_process(entt::registry& registry) :
+        registry(registry) {}
 
-    void update(delta_type delta_time, void *) {
+    void update(delta_type delta_time, void*)
+    {
         auto render_view = registry.view<transform, renderable>();
-        for (auto [entity, transform, renderable] : render_view.each()) {
+        for (auto [entity, transform, renderable] : render_view.each())
+        {
             std::vector<Vector2> vertices = renderable.vertices;
 
             rlPushMatrix();
@@ -26,7 +30,8 @@ struct render_process : entt::process<render_process, std::uint32_t> {
             rlTranslatef(transform.position.x, transform.position.y, 0.0f);
             rlRotatef(angle, 0.0f, 0.0f, 1.0f);
 
-            if (renderable.vertices.size() == 3) {
+            if (renderable.vertices.size() == 3)
+            {
                 DrawTriangle(vertices[0], vertices[1], vertices[2],
                              renderable.color);
 
@@ -35,14 +40,17 @@ struct render_process : entt::process<render_process, std::uint32_t> {
                 DrawCircleV(vertices[2], 1.6f, BLUE);
 
                 DrawTriangleLines(vertices[0], vertices[1], vertices[2], BLACK);
-            } else if (renderable.vertices.size() > 3) {
-                for (int i = 0; i < renderable.vertices.size(); i++) {
+            } else if (renderable.vertices.size() > 3)
+            {
+                for (int i = 0; i < renderable.vertices.size(); i++)
+                {
                     DrawLineEx(renderable.vertices[i],
                                renderable.vertices[(i + 1) %
                                                    renderable.vertices.size()],
                                1.0f, renderable.color);
                 }
-                for (auto vertex : vertices) {
+                for (auto vertex : vertices)
+                {
                     DrawCircleV(vertex, 1.2f, LIGHTGRAY);
                 }
             }
@@ -51,18 +59,22 @@ struct render_process : entt::process<render_process, std::uint32_t> {
         }
     }
 
-  protected:
-    entt::registry &registry;
+   protected:
+    entt::registry& registry;
 };
 
-struct movement_process : entt::process<movement_process, std::uint32_t> {
+struct movement_process : entt::process<movement_process, std::uint32_t>
+{
     using delta_type = std::uint32_t;
 
-    movement_process(entt::registry &registry) : registry(registry) {}
+    movement_process(entt::registry& registry) :
+        registry(registry) {}
 
-    void update(delta_type delta_time, void *) {
+    void update(delta_type delta_time, void*)
+    {
         auto movement_view = registry.view<transform, movement>();
-        for (auto [entity, transform, movement] : movement_view.each()) {
+        for (auto [entity, transform, movement] : movement_view.each())
+        {
             transform.position = Vector2Add(
                 transform.position,
                 Vector2Scale(movement.velocity, delta_time / 1000.0f));
@@ -70,53 +82,67 @@ struct movement_process : entt::process<movement_process, std::uint32_t> {
         }
     }
 
-  protected:
-    entt::registry &registry;
+   protected:
+    entt::registry& registry;
 };
 
-struct vision_process : entt::process<vision_process, std::uint32_t> {
+struct vision_process : entt::process<vision_process, std::uint32_t>
+{
     using delta_type = std::uint32_t;
 
-    vision_process(entt::registry &registry) : registry(registry) {}
+    vision_process(entt::registry& registry) :
+        registry(registry) {}
 
-    void update(delta_type delta_time, void *) {
+    void update(delta_type delta_time, void*)
+    {
         auto boids_view = registry.view<transform, movement>();
-        for (auto [entity, transform, movement] : boids_view.each()) {
+        for (auto [entity, transform, movement] : boids_view.each())
+        {
             RayCollision hit_point;
             if (raycast(registry, transform.position, transform.direction, 100,
-                        &hit_point)) {
+                        &hit_point))
+            {
                 DrawLineEx(transform.position,
                            {hit_point.point.x, hit_point.point.y}, 1.0f, RED);
             }
         }
     }
 
-  protected:
-    entt::registry &registry;
+   protected:
+    entt::registry& registry;
 };
 
-struct collision_process : entt::process<collision_process, std::uint32_t> {
+struct collision_process : entt::process<collision_process, std::uint32_t>
+{
     using delta_type = std::uint32_t;
 
-    collision_process(entt::registry &registry) : registry(registry) {}
+    collision_process(entt::registry& registry) :
+        registry(registry) {}
 
-    void update(delta_type delta_time, void *) {
+    void update(delta_type delta_time, void*)
+    {
         auto moving_entities_view = registry.view<transform, movement>();
 
         auto collision_entities_view =
             registry.view<transform, rect_collider>();
 
         for (auto [moving_entity, transform_data, movement_data] :
-             moving_entities_view.each()) {
+             moving_entities_view.each())
+        {
+			std::vector<Vector2> collision_answers;
+
             for (auto [collider_entity, collider_transform_data,
-                       collider_data] : collision_entities_view.each()) {
-                if (moving_entity == collider_entity) {
+                       collider_data] : collision_entities_view.each())
+            {
+                if (moving_entity == collider_entity)
+                {
                     continue;
                 }
 
                 float rotation_angle =
                     atan2(collider_transform_data.direction.y,
                           collider_transform_data.direction.x);
+
                 Matrix rot_mat = MatrixRotateZ(rotation_angle);
                 // Vector2 transformed_position = Vector2Subtract(
                 //     transform_data.position,
@@ -141,43 +167,36 @@ struct collision_process : entt::process<collision_process, std::uint32_t> {
 
                 // Rect starts not at the centerbut at a corner
                 if (CheckCollisionPointRec(transformed_position,
-                                           collider_rect)) {
-                    // find closes point on rectangle
-                    Vector2 closest_point = {0, 0};
-                    float dist_x = collider_data.extents.x / 2.0 -fabs(transformed_position.x);
-                    float dist_y = collider_data.extents.y / 2.0f - abs(transformed_position.y);
-
-                    // *----------*
-                    // |  -+   ++ |
-                    // |  --   +- |
-                    // *----------*
-
-                    if (abs(dist_x) < abs(dist_y)) // closer to x sides
+                                           collider_rect))
+                {
+                    Vector2 direction = Vector2Scale(
+                        Vector2Normalize(movement_data.velocity), -1.0);
+                    float diagonal =
+                        Vector2Length(Vector2{collider_data.extents.x,
+                                              collider_data.extents.y});
+                    // TODO: Optimize
+                    // TODO: Collide only with the current Rect
+                    RayCollision hit_point;
+                    if (raycast_single_rect(collider_transform_data, collider_data, transform_data.position, direction,
+                                diagonal, &hit_point))
                     {
-                        closest_point.y = transformed_position.y;
-                        closest_point.x = (std::signbit(transformed_position.x) ? -1 : 1) *
-                                          (collider_data.extents.x / 2.0f);
-                    } else {
-                        closest_point.x = transformed_position.x;
-						closest_point.y = (std::signbit(transformed_position.y) ? -1 : 1) *
-										  (collider_data.extents.y / 2.0f);
-					}
-                    closest_point = Vector2Transform(closest_point, rot_mat);
-                    closest_point = Vector2Add(
-                        closest_point, collider_transform_data.position);
+                        auto closest_point =
+                            Vector2{hit_point.point.x, hit_point.point.y};
 
-                    transform_data.position = closest_point;
+                        transform_data.position = closest_point;
 
-                    DrawCircleV(closest_point, 1.2f, GREEN);
+                        DrawCircleV(closest_point, 1.2f, PURPLE);
 
-                    break;
+						collision_answers.push_back(closest_point);
+                    }
                 }
             }
+
         }
     }
 
-  protected:
-    entt::registry &registry;
+   protected:
+    entt::registry& registry;
 };
 
 #endif // BASE_PROC_HPP
