@@ -98,12 +98,12 @@ struct vision_process : entt::process<vision_process, std::uint32_t>
         auto boids_view = registry.view<transform, movement>();
         for (auto [entity, transform, movement] : boids_view.each())
         {
-            RayCollision hit_point;
-            if (raycast(registry, transform.position, transform.direction, 100,
-                        &hit_point))
+            std::vector<RayCollision> hit_points;
+            if (raycast(registry, transform.position, transform.direction, hit_points, 100))
             {
+                RayCollision closest_hit = hit_points[0];
                 DrawLineEx(transform.position,
-                           {hit_point.point.x, hit_point.point.y}, 1.0f, RED);
+                           {closest_hit.point.x, closest_hit.point.y}, 1.0f, RED);
             }
         }
     }
@@ -129,7 +129,7 @@ struct collision_process : entt::process<collision_process, std::uint32_t>
         for (auto [moving_entity, transform_data, movement_data] :
              moving_entities_view.each())
         {
-			std::vector<Vector2> collision_answers;
+            std::vector<Vector2> collision_answers;
 
             for (auto [collider_entity, collider_transform_data,
                        collider_data] : collision_entities_view.each())
@@ -155,10 +155,10 @@ struct collision_process : entt::process<collision_process, std::uint32_t>
                 Matrix transform_matrix =
                     MatrixMultiply(rot_mat, translation_matrix);
 
-                Rectangle collider_rect = {-collider_data.extents.x * 0.5f,
-                                           -collider_data.extents.y * 0.5f,
-                                           collider_data.extents.x,
-                                           collider_data.extents.y};
+                Rectangle collider_rect = {-collider_data.size.x * 0.5f,
+                                           -collider_data.size.y * 0.5f,
+                                           collider_data.size.x,
+                                           collider_data.size.y};
 
                 Vector2 transformed_position = Vector2Subtract(
                     transform_data.position, collider_transform_data.position);
@@ -171,27 +171,16 @@ struct collision_process : entt::process<collision_process, std::uint32_t>
                 {
                     Vector2 direction = Vector2Scale(
                         Vector2Normalize(movement_data.velocity), -1.0);
-                    float diagonal =
-                        Vector2Length(Vector2{collider_data.extents.x,
-                                              collider_data.extents.y});
-                    // TODO: Optimize
-                    // TODO: Collide only with the current Rect
-                    RayCollision hit_point;
-                    if (raycast_single_rect(collider_transform_data, collider_data, transform_data.position, direction,
-                                diagonal, &hit_point))
-                    {
-                        auto closest_point =
-                            Vector2{hit_point.point.x, hit_point.point.y};
 
-                        transform_data.position = closest_point;
+					float diagonal = sqrt(pow(collider_data.size.x, 2) + pow(collider_data.size.y, 2));
 
-                        DrawCircleV(closest_point, 1.2f, PURPLE);
+                    std::vector<RayCollision> hit_points;
+                    raycast(registry, transform_data.position, direction, hit_points, diagonal, false);
+                    auto fartest_point = hit_points[0];
 
-						collision_answers.push_back(closest_point);
-                    }
+                    transform_data.position = Vector2{fartest_point.point.x, fartest_point.point.y};
                 }
             }
-
         }
     }
 

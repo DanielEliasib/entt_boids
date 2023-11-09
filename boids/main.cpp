@@ -1,38 +1,49 @@
-#include "boids_definitions.hpp"
+#include <raylib.h>
+#include <raymath.h>
+
 #include <base_definitions.hpp>
 #include <base_processors.hpp>
 #include <boids.hpp>
 #include <iostream>
-#include <raylib.h>
-#include <raymath.h>
+#include <vector>
 
-bool random_raycast(entt::registry &registry, RayCollision *collision_point,
-                    Vector2 *random_screen_position_1,
-                    Vector2 *random_screen_position_2) {
+#include "boids_definitions.hpp"
 
+bool random_raycast(entt::registry& registry, RayCollision* collision_point,
+                    Vector2* random_screen_position_1,
+                    Vector2* random_screen_position_2)
+{
     *random_screen_position_1 =
         Vector2{(float)GetRandomValue(0, 800), (float)GetRandomValue(0, 600)};
 
     *random_screen_position_2 =
         Vector2{(float)GetRandomValue(0, 800), (float)GetRandomValue(0, 600)};
 
-    return raycast(registry, *random_screen_position_1,
-                   Vector2Normalize(Vector2Subtract(*random_screen_position_2,
-                                                    *random_screen_position_1)),
-                   500, collision_point);
+    std::vector<RayCollision> hit_points;
+    auto hit = raycast(registry, *random_screen_position_1,
+                       Vector2Normalize(Vector2Subtract(*random_screen_position_2, *random_screen_position_1)),
+                       hit_points, 500);
+
+    if (collision_point != nullptr)
+    {
+        collision_point = &hit_points[0];
+    }
+
+    return hit;
 }
 
-void create_screen_walls(entt::registry &registry) {
-    int width = GetScreenWidth();
+void create_screen_walls(entt::registry& registry)
+{
+    int width  = GetScreenWidth();
     int height = GetScreenHeight();
 
-    int horizontal_lenght = width*2;
-    int vertical_lenght = height*2;
+    int horizontal_lenght = width * 2;
+    int vertical_lenght   = height * 2;
 
-    auto top_wall = registry.create();
+    auto top_wall    = registry.create();
     auto bottom_wall = registry.create();
-    auto left_wall = registry.create();
-    auto right_wall = registry.create();
+    auto left_wall   = registry.create();
+    auto right_wall  = registry.create();
 
     std::vector<Vector2> horizontal_corners;
     horizontal_corners.resize(4);
@@ -76,12 +87,13 @@ void create_screen_walls(entt::registry &registry) {
                                  renderable{BLUE, 1, vertical_corners});
 }
 
-void random_block(entt::registry &registry) {
-    int width = GetScreenWidth();
+void random_block(entt::registry& registry)
+{
+    int width  = GetScreenWidth();
     int height = GetScreenHeight();
 
     int horizontal_lenght = GetRandomValue(50, 100);
-    int vertical_lenght = GetRandomValue(50, 100);
+    int vertical_lenght   = GetRandomValue(50, 100);
 
     std::vector<Vector2> corners;
     corners.resize(4);
@@ -101,17 +113,18 @@ void random_block(entt::registry &registry) {
     registry.emplace<renderable>(block, renderable{BLUE, 1, corners});
 }
 
-int main() {
+int main()
+{
     InitWindow(800, 600, "BOIDS");
-	SetRandomSeed(100);
+    SetRandomSeed(100);
 
     entt::registry registry = entt::registry();
 
     boids::create_n_boids(registry, 400, Vector2{400, 300}, 330);
-    
-	entt::scheduler general_scheduler;
+
+    entt::scheduler general_scheduler;
     general_scheduler.attach<boids::boid_hashing_process>(registry);
-	general_scheduler.attach<boids::boid_separation_process>(registry);
+    general_scheduler.attach<boids::boid_separation_process>(registry);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<collision_process>(registry);
     general_scheduler.attach<boids::collision_avoidance_process>(registry);
@@ -123,7 +136,8 @@ int main() {
 
     create_screen_walls(registry);
 
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 10; i++)
+    {
         random_block(registry);
     }
 
@@ -149,7 +163,8 @@ int main() {
         random_raycast(registry, &collision_point, &random_screen_position_1,
                        &random_screen_position_2);
 
-    while (!WindowShouldClose()) {
+    while (!WindowShouldClose())
+    {
         general_scheduler.update(GetFrameTime() * 1000);
 
         BeginDrawing();
@@ -158,13 +173,15 @@ int main() {
 
         render_scheduler.update(GetFrameTime() * 1000);
 
-        if (IsKeyPressed(KEY_SPACE)) {
+        if (IsKeyPressed(KEY_SPACE))
+        {
             intercepted = random_raycast(registry, &collision_point,
                                          &random_screen_position_1,
                                          &random_screen_position_2);
         }
 
-        if (intercepted) {
+        if (intercepted)
+        {
             DrawCircleV({collision_point.point.x, collision_point.point.y}, 20,
                         RED);
         }
