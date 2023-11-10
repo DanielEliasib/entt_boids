@@ -112,11 +112,11 @@ struct vision_process : entt::process<vision_process, std::uint32_t>
     entt::registry& registry;
 };
 
-struct wall_collision_process : entt::process<wall_collision_process, std::uint32_t>
+struct boids_constraints_process : entt::process<boids_constraints_process, std::uint32_t>
 {
     using delta_type = std::uint32_t;
 
-    wall_collision_process(entt::registry& registry) :
+    boids_constraints_process(entt::registry& registry) :
         registry(registry)
     {
         screen_width  = GetScreenWidth();
@@ -130,25 +130,40 @@ struct wall_collision_process : entt::process<wall_collision_process, std::uint3
         // INFO: Simple wall collision, can't figure out collisions
         for (auto [entity, transform_data, movement_data] : moving_entities_view.each())
         {
-			if (transform_data.position.x < 0)
-			{
-				movement_data.velocity.x *= -1;
-				transform_data.position.x = 0;
-			} else if (transform_data.position.x > screen_width)
-			{
-				movement_data.velocity.x *= -1;
-				transform_data.position.x = screen_width;
-			}
+            Vector2 center_direction = Vector2Subtract(Vector2{screen_width * 0.5f, screen_height * 0.5f}, transform_data.position);
+            center_direction         = Vector2Normalize(center_direction);
+            bool override_velocity   = false;
 
-			if (transform_data.position.y < 0)
-			{
-				movement_data.velocity.y *= -1;
-				transform_data.position.y = 0;
-			} else if (transform_data.position.y > screen_height)
-			{
-				movement_data.velocity.y *= -1;
-				transform_data.position.y = screen_height;
-			}
+            if (transform_data.position.x < 0)
+            {
+                movement_data.velocity.x *= center_direction.x;
+                transform_data.position.x = 0;
+            } else if (transform_data.position.x > screen_width)
+            {
+                movement_data.velocity.x *= center_direction.x;
+                transform_data.position.x = screen_width;
+            }
+
+            if (transform_data.position.y < 0)
+            {
+                movement_data.velocity.y *= center_direction.y;
+                transform_data.position.y = 0;
+            } else if (transform_data.position.y > screen_height)
+            {
+                movement_data.velocity.y *= center_direction.y;
+                transform_data.position.y = screen_height;
+            }
+
+            auto speed = Vector2Length(movement_data.velocity);
+			
+			if (speed <= 1)
+				movement_data.velocity = center_direction;
+
+            if (speed >= min_speed && speed <= max_speed)
+                continue;
+			
+			speed = std::clamp(speed, min_speed, max_speed);
+            movement_data.velocity = Vector2Scale(Vector2Normalize(movement_data.velocity), speed);
         }
     }
 
@@ -156,6 +171,8 @@ struct wall_collision_process : entt::process<wall_collision_process, std::uint3
     entt::registry& registry;
     int screen_width;
     int screen_height;
+    float min_speed = 10;
+    float max_speed = 30;
 };
 
 #endif // BASE_PROC_HPP
