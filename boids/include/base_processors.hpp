@@ -112,81 +112,50 @@ struct vision_process : entt::process<vision_process, std::uint32_t>
     entt::registry& registry;
 };
 
-struct collision_process : entt::process<collision_process, std::uint32_t>
+struct wall_collision_process : entt::process<wall_collision_process, std::uint32_t>
 {
     using delta_type = std::uint32_t;
 
-    collision_process(entt::registry& registry) :
-        registry(registry) {}
+    wall_collision_process(entt::registry& registry) :
+        registry(registry)
+    {
+        screen_width  = GetScreenWidth();
+        screen_height = GetScreenHeight();
+    }
 
     void update(delta_type delta_time, void*)
     {
         auto moving_entities_view = registry.view<transform, movement>();
 
-        auto collision_entities_view =
-            registry.view<transform, rect_collider>();
-
-        for (auto [moving_entity, transform_data, movement_data] :
-             moving_entities_view.each())
+        // INFO: Simple wall collision, can't figure out collisions
+        for (auto [entity, transform_data, movement_data] : moving_entities_view.each())
         {
-            std::vector<Vector2> collision_answers;
+			if (transform_data.position.x < 0)
+			{
+				movement_data.velocity.x *= -1;
+				transform_data.position.x = 0;
+			} else if (transform_data.position.x > screen_width)
+			{
+				movement_data.velocity.x *= -1;
+				transform_data.position.x = screen_width;
+			}
 
-            for (auto [collider_entity, collider_transform_data,
-                       collider_data] : collision_entities_view.each())
-            {
-                if (moving_entity == collider_entity)
-                {
-                    continue;
-                }
-
-                float rotation_angle =
-                    atan2(collider_transform_data.direction.y,
-                          collider_transform_data.direction.x);
-
-                Matrix rot_mat = MatrixRotateZ(rotation_angle);
-                // Vector2 transformed_position = Vector2Subtract(
-                //     transform_data.position,
-                //     collider_transform_data.position);
-                // transformed_position = Vector2Transform(transformed_position,
-                //                                         MatrixInvert(rot_mat));
-                Matrix translation_matrix =
-                    MatrixTranslate(collider_transform_data.position.x,
-                                    collider_transform_data.position.y, 0);
-                Matrix transform_matrix =
-                    MatrixMultiply(rot_mat, translation_matrix);
-
-                Rectangle collider_rect = {-collider_data.size.x * 0.5f,
-                                           -collider_data.size.y * 0.5f,
-                                           collider_data.size.x,
-                                           collider_data.size.y};
-
-                Vector2 transformed_position = Vector2Subtract(
-                    transform_data.position, collider_transform_data.position);
-                transformed_position = Vector2Transform(transformed_position,
-                                                        MatrixInvert(rot_mat));
-
-                // Rect starts not at the centerbut at a corner
-                if (CheckCollisionPointRec(transformed_position,
-                                           collider_rect))
-                {
-                    Vector2 direction = Vector2Scale(
-                        Vector2Normalize(movement_data.velocity), -1.0);
-
-                    std::vector<RayCollision> hit_points;
-                    if (!raycast(registry, transform_data.position, direction, hit_points, 75, false))
-                    {
-                        continue;
-                    }
-                    auto fartest_point = hit_points[0];
-
-                    transform_data.position = Vector2{fartest_point.point.x, fartest_point.point.y};
-                }
-            }
+			if (transform_data.position.y < 0)
+			{
+				movement_data.velocity.y *= -1;
+				transform_data.position.y = 0;
+			} else if (transform_data.position.y > screen_height)
+			{
+				movement_data.velocity.y *= -1;
+				transform_data.position.y = screen_height;
+			}
         }
     }
 
    protected:
     entt::registry& registry;
+    int screen_width;
+    int screen_height;
 };
 
 #endif // BASE_PROC_HPP
