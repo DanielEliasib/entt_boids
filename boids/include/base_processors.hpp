@@ -172,10 +172,11 @@ struct collision_process : entt::process<collision_process, std::uint32_t>
                     Vector2 direction = Vector2Scale(
                         Vector2Normalize(movement_data.velocity), -1.0);
 
-					float diagonal = sqrt(pow(collider_data.size.x, 2) + pow(collider_data.size.y, 2));
-
                     std::vector<RayCollision> hit_points;
-                    raycast(registry, transform_data.position, direction, hit_points, diagonal, false);
+                    if (!raycast(registry, transform_data.position, direction, hit_points, 75, false))
+                    {
+                        continue;
+                    }
                     auto fartest_point = hit_points[0];
 
                     transform_data.position = Vector2{fartest_point.point.x, fartest_point.point.y};

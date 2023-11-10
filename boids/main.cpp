@@ -126,7 +126,7 @@ int main()
     general_scheduler.attach<boids::boid_hashing_process>(registry);
     general_scheduler.attach<boids::boid_separation_process>(registry);
     general_scheduler.attach<movement_process>(registry);
-    general_scheduler.attach<collision_process>(registry);
+    // general_scheduler.attach<collision_process>(registry);
     general_scheduler.attach<boids::collision_avoidance_process>(registry);
 
     entt::scheduler render_scheduler;

@@ -117,18 +117,31 @@ namespace boids
             {
                 std::vector<RayCollision> hit_points;
                 if (raycast(registry, transform_data.position,
-                            transform_data.direction, hit_points, 50))
+                            transform_data.direction, hit_points, 75))
                 {
                     RayCollision collision_point = hit_points[0];
-                    float current_speed          = Vector2Length(movement_data.velocity);
-                    current_speed                = current_speed <= 5.0f
-                                                       ? 5.0f
-                                                       : current_speed; // TODO: REMOVE HARDCODING
+
+                    auto normal = collision_point.normal;
+                    auto v      = Vector3CrossProduct(normal, {0, 0, 1});
+
+                    auto dot = Vector3DotProduct(v, {transform_data.direction.x, transform_data.direction.y, 0});
+                    if (dot < 0)
+                    {
+                        v = Vector3Scale(v, -1);
+                    }
+
+                    Vector2 half_vector = Vector2Add(Vector2{normal.x, normal.y}, Vector2{v.x, v.y});
+                    half_vector         = Vector2Normalize(half_vector);
+
+                    float current_speed = Vector2Length(movement_data.velocity);
+                    current_speed       = current_speed <= 5.0f
+                                              ? 5.0f
+                                              : current_speed; // TODO: REMOVE HARDCODING
 
                     Vector2 target_direction = Vector2Lerp(
                         transform_data.direction,
-                        Vector2{collision_point.normal.x, collision_point.normal.y},
-                        delta_time * 0.0001f * 20);
+                        half_vector,
+                        delta_time * 0.0001f * 10);
                     target_direction = Vector2Normalize(target_direction);
 
                     movement_data.velocity =
