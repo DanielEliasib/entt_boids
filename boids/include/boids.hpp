@@ -6,7 +6,7 @@
 
 #include <base_definitions.hpp>
 #include <boids_definitions.hpp>
-#include <entt.hpp>
+#include <entt/entt.hpp>
 #include <stack>
 #include <vector>
 

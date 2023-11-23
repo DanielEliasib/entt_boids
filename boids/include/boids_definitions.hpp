@@ -5,7 +5,7 @@
 #include <raymath.h>
 #include <rlgl.h>
 
-#include <entt.hpp>
+#include <entt/entt.hpp>
 #include <iostream>
 #include <unordered_set>
 

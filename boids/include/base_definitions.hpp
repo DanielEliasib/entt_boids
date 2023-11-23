@@ -4,7 +4,7 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
-#include <entt.hpp>
+#include <entt/entt.hpp>
 
 struct transform {
     Vector2 position;

@@ -8,7 +8,7 @@
 #include <base_definitions.hpp>
 #include <cmath>
 #include <collision_definitions.hpp>
-#include <entt.hpp>
+#include <entt/entt.hpp>
 
 struct render_process : entt::process<render_process, std::uint32_t>
 {
