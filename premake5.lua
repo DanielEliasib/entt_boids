@@ -35,6 +35,6 @@ project "boids"
 
 	prebuildcommands {
 	'{MKDIR} %{wks.location}/libs/raylib/include/',
-	'{COPY} %{wks.location}/raylib/src/raylib.h %{wks.location}/raylib/src/raymath.h %{wks.location}/raylib/src/rlgl.h %{wks.location}/libs/raylib/include/',
+	'{COPYDIR} %{wks.location}/raylib/src/raylib.h %{wks.location}/raylib/src/raymath.h %{wks.location}/raylib/src/rlgl.h %{wks.location}/libs/raylib/include/',
 	'{CHDIR} %{wks.location}/raylib/src/ && make PLATFORM=PLATFORM_DESKTOP && {CHDIR} %{prj.location}',
-	'{COPY} %{wks.location}/raylib/src/libraylib.a %{wks.location}/raylib/src/rcore.o %{wks.location}/raylib/src/rshapes.o %{wks.location}/raylib/src/rtextures.o %{wks.location}/raylib/src/rtext.o %{wks.location}/raylib/src/utils.o %{wks.location}/raylib/src/rglfw.o %{wks.location}/raylib/src/rmodels.o %{wks.location}/libs/raylib/' }
+	'{COPYDIR} %{wks.location}/raylib/src/libraylib.a %{wks.location}/raylib/src/rcore.o %{wks.location}/raylib/src/rshapes.o %{wks.location}/raylib/src/rtextures.o %{wks.location}/raylib/src/rtext.o %{wks.location}/raylib/src/utils.o %{wks.location}/raylib/src/rglfw.o %{wks.location}/raylib/src/rmodels.o %{wks.location}/libs/raylib/' }
