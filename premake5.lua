@@ -1,12 +1,14 @@
 workspace "ecs_boids"
 	configurations { "debug", "release" }
 
+local raylib_dir = 'raylib/src'
+
 project "boids"
 	kind "ConsoleApp"
 	language "C++"
 	cppdialect "C++17"
 
-	location "boids"
+	location "boids/"
 
 	targetdir "bin/%{prj.name}/%{cfg.buildcfg}"
 	objdir "obj/%{prj.name}/%{cfg.buildcfg}"
@@ -14,8 +16,8 @@ project "boids"
 
 	includedirs { "%{prj.location}/include" }
 
-	includedirs { "%{wks.location}/raylib-4.5.0_linux_amd64/include" }
-	libdirs { "%{wks.location}/raylib-4.5.0_linux_amd64/lib" }
+	includedirs { "%{wks.location}/libs/raylib/include/" }
+	libdirs { "%{wks.location}/libs/raylib/" }
 
 	links { "raylib" }
 
@@ -30,3 +32,9 @@ project "boids"
 		optimize "On"
 
 	filter {}
+
+	prebuildcommands {
+	'{MKDIR} %{wks.location}/libs/raylib/include/',
+	'{COPY} %{wks.location}/raylib/src/raylib.h %{wks.location}/raylib/src/raymath.h %{wks.location}/raylib/src/rlgl.h %{wks.location}/libs/raylib/include/',
+	'{CHDIR} %{wks.location}/raylib/src/ && make PLATFORM=PLATFORM_DESKTOP && {CHDIR} %{prj.location}',
+	'{COPY} %{wks.location}/raylib/src/libraylib.a %{wks.location}/raylib/src/rcore.o %{wks.location}/raylib/src/rshapes.o %{wks.location}/raylib/src/rtextures.o %{wks.location}/raylib/src/rtext.o %{wks.location}/raylib/src/utils.o %{wks.location}/raylib/src/rglfw.o %{wks.location}/raylib/src/rmodels.o %{wks.location}/libs/raylib/' }

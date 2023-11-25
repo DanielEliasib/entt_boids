@@ -8,3 +8,6 @@ MakeFile
 
 .clang-format
 compile_commands.json
+
+raylib/
+libs/raylib/
