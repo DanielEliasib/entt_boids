@@ -23,6 +23,7 @@ project "boids"
 
 	filter "system:windows"
 		links { "OpenGL32", "GDI32", "WinMM"}
+	filter {}
 
 	files { "%{prj.location}/**.h", "%{prj.location}/**.hpp", "%{prj.location}/**.cpp" }
 
