@@ -49,6 +49,41 @@ namespace boids
             return cell_x + cell_y * (window_width / cell_size); // 2D to 1D
         }
 
+        std::vector<int> get_close_cells(int cell_id)
+        {
+            auto check_func = [&](int x, int y) {
+                if (x < 0 || x >= window_width / cell_size)
+                    return false;
+                if (y < 0 || y >= window_height / cell_size)
+                    return false;
+                return true;
+            };
+
+            auto ids    = std::vector<int>();
+            auto [x, y] = cell_id_to_index(cell_id);
+
+            int n_x = x;
+            int n_y = y - 1;
+            if (check_func(n_x, n_y))
+                ids.push_back(n_x + n_y * (window_width / cell_size));
+
+            n_x = x;
+            n_y = y + 1;
+            if (check_func(n_x, n_y))
+                ids.push_back(n_x + n_y * (window_width / cell_size));
+
+            n_x = x - 1;
+            n_y = y;
+            if (check_func(n_x, n_y))
+                ids.push_back(n_x + n_y * (window_width / cell_size));
+
+            n_x = x + 1;
+            n_y = y;
+            if (check_func(n_x, n_y))
+                ids.push_back(n_x + n_y * (window_width / cell_size));
+
+            return ids;
+        }
         // grid cell id to 2D index
         std::pair<int, int> cell_id_to_index(int cell_id)
         {

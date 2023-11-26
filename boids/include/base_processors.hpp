@@ -127,7 +127,6 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
     {
         auto moving_entities_view = registry.view<transform, movement>();
 
-        // INFO: Simple wall collision, can't figure out collisions
         for (auto [entity, transform_data, movement_data] : moving_entities_view.each())
         {
             Vector2 center_direction = Vector2Subtract(Vector2{screen_width * 0.5f, screen_height * 0.5f}, transform_data.position);
@@ -155,14 +154,14 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
             }
 
             auto speed = Vector2Length(movement_data.velocity);
-			
-			if (speed <= 1)
-				movement_data.velocity = center_direction;
+
+            if (speed <= 1)
+                movement_data.velocity = center_direction;
 
             if (speed >= min_speed && speed <= max_speed)
                 continue;
-			
-			speed = std::clamp(speed, min_speed, max_speed);
+
+            speed                  = std::clamp(speed, min_speed, max_speed);
             movement_data.velocity = Vector2Scale(Vector2Normalize(movement_data.velocity), speed);
         }
     }

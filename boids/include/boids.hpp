@@ -8,6 +8,7 @@
 #include <boids_definitions.hpp>
 #include <entt/entt.hpp>
 #include <stack>
+#include <unordered_set>
 #include <vector>
 
 namespace boids
@@ -69,13 +70,14 @@ namespace boids
     }
 
     // separation process
-    struct boid_separation_process : entt::process<boid_separation_process, std::uint32_t>
+    struct boid_algo_process : entt::process<boid_algo_process, std::uint32_t>
     {
         using delta_type = std::uint32_t;
 
-        boid_separation_process(entt::registry& registry) :
+        boid_algo_process(entt::registry& registry) :
             registry(registry)
         {
+            // WARN: We assume that the screen size is not going to change
             screen_width  = GetScreenWidth();
             screen_height = GetScreenHeight();
         }
@@ -86,15 +88,23 @@ namespace boids
             auto grid_view  = registry.view<boids::grid>();
             auto grid_data  = grid_view.get<boids::grid>(grid_view.front());
 
+            float separation_radius = 30.0f;
+            float cohesion_radius   = 70.0f;
+
             std::unordered_set<entt::entity> close_boids;
 
             for (auto [entity, transform_data, movement_data, boid_data] : boids_view.each())
             {
+                close_boids.clear();
                 grid_data.get_boids_in_cell(boid_data.current_cell_id, close_boids);
 
-                Vector2 separation_force  = Vector2Zero();
-                Vector2 average_direction = Vector2Zero();
-                Vector2 average_position  = Vector2Zero();
+                Vector2 local_flock_center_separation = Vector2Zero();
+                int n_separation_boids                = 0;
+
+                Vector2 local_flock_center_cohesion = Vector2Zero();
+                int n_cohesion_boids                = 0;
+
+                Vector2 local_flock_direction = Vector2Zero();
 
                 for (auto close_boid : close_boids)
                 {
@@ -104,33 +114,39 @@ namespace boids
                     auto close_boid_transform = boids_view.get<transform>(close_boid);
                     auto close_boid_movement  = boids_view.get<movement>(close_boid);
 
-                    Vector2 direction = Vector2Subtract(transform_data.position, close_boid_transform.position);
-                    float distance    = Vector2Length(direction);
+                    Vector2 close_boid_direction = Vector2Normalize(close_boid_movement.velocity);
 
-                    separation_force = Vector2Add(
-                        separation_force, Vector2Scale(Vector2Normalize(direction),
-                                                       std::clamp(20.0f / distance, 0.0f, 1.0f)));
+                    float sqr_distance = Vector2DistanceSqr(transform_data.position, close_boid_transform.position);
 
-                    average_direction = Vector2Add(average_direction, transform_data.direction);
-                    average_position  = Vector2Add(average_position, transform_data.position);
+                    if (sqr_distance <= separation_radius * separation_radius)
+                    {
+                        local_flock_center_separation = Vector2Add(local_flock_center_separation, close_boid_transform.position);
+                        n_separation_boids++;
+                    }
+
+                    if (sqr_distance <= cohesion_radius * cohesion_radius)
+                    {
+                        local_flock_center_cohesion = Vector2Add(local_flock_center_cohesion, close_boid_transform.position);
+                        n_cohesion_boids++;
+                    }
+
+                    local_flock_direction = Vector2Add(local_flock_direction, close_boid_direction);
                 }
-                average_direction = close_boids.size() <= 0 ? transform_data.direction : Vector2Normalize(Vector2Scale(average_direction, 1.0f / close_boids.size()));
-                average_position  = close_boids.size() <= 0 ? transform_data.position : Vector2Scale(average_position, 1.0f / close_boids.size());
 
-                auto cohercion_direction = Vector2Subtract(average_position, transform_data.position);
-                float cohercion_strenght = std::clamp(20.0f / Vector2Length(cohercion_direction), 0.0f, 5.0f);
-                cohercion_direction      = Vector2Normalize(cohercion_direction);
+                int n_close_boids = close_boids.size() - 1;
 
-                //             Vector2 center_direction = Vector2Subtract(Vector2{screen_width * 0.5f, screen_height * 0.5f}, transform_data.position);
-                // center_direction = Vector2Scale(Vector2Normalize(center_direction), 2);
+                local_flock_center_separation = n_separation_boids > 0 ? Vector2Scale(local_flock_center_separation, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
+                local_flock_center_cohesion   = n_cohesion_boids > 0 ? Vector2Scale(local_flock_center_cohesion, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
 
-                float separation = Vector2Length(separation_force);
-                separation_force = Vector2Normalize(separation_force);
-                separation_force = Vector2Add(separation_force, average_direction);
-                separation_force = Vector2Add(separation_force, cohercion_direction);
-                separation_force = Vector2Scale(separation_force, cohercion_strenght * separation / 3.0f);
+                local_flock_direction = n_close_boids > 0 ? Vector2Scale(local_flock_direction, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
 
-                movement_data.velocity = Vector2Add(movement_data.velocity, separation_force);
+                Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 0.6f);
+                Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 0.35f);
+
+                Vector2 alignment_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_direction, Vector2Normalize(movement_data.velocity))), 0.95f);
+                Vector2 total_force     = Vector2Add(Vector2Add(cohesion_force, separation_force), alignment_force);
+                //---------------------------------------------
+                movement_data.velocity = Vector2Add(movement_data.velocity, Vector2Scale(total_force, delta_time / 1000.0f));
             }
         }
 
