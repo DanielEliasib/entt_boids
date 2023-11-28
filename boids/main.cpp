@@ -124,6 +124,7 @@ int main()
 
     entt::scheduler general_scheduler;
     general_scheduler.attach<boids::boid_hashing_process>(registry);
+	general_scheduler.attach<boids::cell_data_process>(registry);
     general_scheduler.attach<boids::boid_algo_process>(registry);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<boids_constraints_process>(registry);

@@ -29,6 +29,14 @@ namespace boids
 
     struct grid
     {
+        struct cell_data
+        {
+            Vector2 local_boids_center;
+            Vector2 local_boids_direction;
+
+            int boids_count;
+        };
+
         int cell_size;
         int window_width;
         int window_height;
@@ -36,6 +44,7 @@ namespace boids
 
         std::unordered_map<int, std::unordered_set<entt::entity>>
             cell_to_boids;
+        std::unordered_map<int, cell_data> cell_data_map;
 
         grid(int cell_size) :
             cell_size(cell_size)
@@ -44,6 +53,7 @@ namespace boids
             window_height = GetScreenHeight();
             cell_count    = (window_width / cell_size) * (window_height / cell_size);
             cell_to_boids = std::unordered_map<int, std::unordered_set<entt::entity>>();
+            cell_data_map = std::unordered_map<int, cell_data>();
         }
 
         int hash_position(Vector2 position)
@@ -142,6 +152,21 @@ namespace boids
                 return;
 
             boids = cell_to_boids[cell_id];
+        }
+
+        void update_cell_data(int cell_id, Vector2 position, Vector2 direction, int n_boids)
+        {
+            cell_data_map[cell_id].local_boids_center    = position;
+            cell_data_map[cell_id].local_boids_direction = direction;
+            cell_data_map[cell_id].boids_count           = n_boids;
+        }
+
+        cell_data get_cell_data(int cell_id)
+        {
+			if (cell_data_map.find(cell_id) == cell_data_map.end())
+				return cell_data{};
+
+            return cell_data_map[cell_id];
         }
     };
 
@@ -279,6 +304,50 @@ namespace boids
        protected:
         entt::registry& registry;
     };
+
+    struct cell_data_process : entt::process<cell_data_process, std::uint32_t>
+    {
+        using delta_type = std::uint32_t;
+
+        cell_data_process(entt::registry& registry) :
+            registry(registry) {}
+
+        void update(delta_type delta_time, void*)
+        {
+            auto grid_view   = registry.view<grid>();
+            auto grid_entity = grid_view.front();
+
+            auto boids_view = registry.view<transform, movement, boid>();
+
+            if (grid_entity == entt::null)
+                return;
+
+            auto& grid_data = registry.get<grid>(grid_entity);
+
+            for (int cell_id = 0; cell_id < grid_data.cell_count; cell_id++)
+            {
+                auto [x, y] = grid_data.cell_id_to_index(cell_id);
+                std::unordered_set<entt::entity> grid_boids;
+                grid_data.get_boids_in_cell(cell_id, grid_boids);
+
+                Vector2 local_boids_center    = {0, 0};
+                Vector2 local_boids_direction = {0, 0};
+
+                for (auto boid : grid_boids)
+                {
+                    auto [transform_data, movement_data] = boids_view.get<transform, movement>(boid);
+
+                    local_boids_center    = Vector2Add(local_boids_center, transform_data.position);
+                    local_boids_direction = Vector2Add(local_boids_direction, transform_data.direction);
+                }
+
+                grid_data.update_cell_data(cell_id, local_boids_center, local_boids_direction, grid_boids.size());
+            }
+        }
+
+       protected:
+        entt::registry& registry;
+    }
 
 } // namespace boids
 

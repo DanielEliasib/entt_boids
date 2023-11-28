@@ -95,73 +95,38 @@ namespace boids
 
             std::unordered_set<entt::entity> close_boids;
 
+            // TODO: remove unecesarry operation already calcualted in grid data process
+
             for (auto [entity, transform_data, movement_data, boid_data] : boids_view.each())
             {
+                auto grid_pre_process_data = grid_data.get_cell_data(boid_data.current_cell_id);
+
                 close_boids.clear();
                 grid_data.get_boids_in_cell(boid_data.current_cell_id, close_boids);
+                int n_close_boids = close_boids.size() - 1;
 
-                Vector2 local_flock_center_separation = Vector2Zero();
-                int n_separation_boids                = 0;
+                auto local_flock_center    = grid_pre_process_data.local_boids_center;
+                auto local_flock_direction = grid_pre_process_data.local_boids_direction;
+                auto local_boid_count      = grid_pre_process_data.boids_count;
 
-                Vector2 local_flock_center_cohesion = Vector2Zero();
-                int n_cohesion_boids                = 0;
+                if (n_close_boids > 0)
+                {
+                    local_flock_center = Vector2Subtract(local_flock_center, transform_data.position);
+                    local_flock_center = Vector2Scale(local_flock_center, 1.0f / (local_boid_count - 1.0f));
 
-                Vector2 local_flock_direction = Vector2Zero();
+                    local_flock_direction = Vector2Subtract(local_flock_direction, transform_data.direction);
+                    local_flock_direction = Vector2Scale(local_flock_direction, 1.0f / (local_boid_count - 1.0f));
+                } else
+                {
+                    local_flock_center    = Vector2Zero();
+                    local_flock_direction = transform_data.direction;
+                }
 
                 std::vector<Vector2> debug_coheision_boids;
                 std::vector<Vector2> debug_separation_boids;
 
-                for (auto close_boid : close_boids)
-                {
-                    if (close_boid == entity)
-                        continue;
-
-                    auto close_boid_transform = boids_view.get<transform>(close_boid);
-                    auto close_boid_movement  = boids_view.get<movement>(close_boid);
-
-                    Vector2 close_boid_direction = Vector2Normalize(close_boid_movement.velocity);
-
-                    float sqr_distance = Vector2DistanceSqr(transform_data.position, close_boid_transform.position);
-
-                    if (sqr_distance <= separation_radius * separation_radius)
-                    {
-                        local_flock_center_separation = Vector2Add(local_flock_center_separation, close_boid_transform.position);
-                        n_separation_boids++;
-
-                        if (boid_data.id == debug_boid_id)
-                        {
-                            debug_separation_boids.push_back(close_boid_transform.position);
-                        }
-                    }
-
-                    if (sqr_distance <= cohesion_radius * cohesion_radius)
-                    {
-                        local_flock_center_cohesion = Vector2Add(local_flock_center_cohesion, close_boid_transform.position);
-                        n_cohesion_boids++;
-
-                        if (boid_data.id == debug_boid_id)
-                        {
-                            debug_coheision_boids.push_back(close_boid_transform.position);
-                        }
-                    }
-
-                    local_flock_direction = Vector2Add(local_flock_direction, close_boid_direction);
-
-                    if (boid_data.id == debug_boid_id)
-                    {
-                        DrawLineV(close_boid_transform.position,
-                                  Vector2Add(close_boid_transform.position, Vector2Scale(close_boid_direction, 30)), ColorAlpha(RED, 0.2f));
-                    }
-                }
-
-                int n_close_boids = close_boids.size() - 1;
-
-                local_flock_center_separation = n_separation_boids > 0 ? Vector2Scale(local_flock_center_separation, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
-
-                local_flock_center_cohesion = n_cohesion_boids > 0 ? Vector2Scale(local_flock_center_cohesion, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
-				local_flock_center_cohesion = Vector2Subtract(local_flock_center_cohesion, target_pos);
-
-                local_flock_direction = n_close_boids > 0 ? Vector2Scale(local_flock_direction, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
+				Vector2 local_flock_center_separation = local_flock_center;
+                Vector2 local_flock_center_cohesion = Vector2Subtract(local_flock_center, target_pos);
 
                 Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 35);
                 Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 60);
