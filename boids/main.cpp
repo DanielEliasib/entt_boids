@@ -126,78 +126,22 @@ int main()
     general_scheduler.attach<boids::boid_hashing_process>(registry);
     general_scheduler.attach<boids::boid_algo_process>(registry);
     general_scheduler.attach<movement_process>(registry);
-	
-    // general_scheduler.attach<boids::collision_avoidance_process>(registry);
     general_scheduler.attach<boids_constraints_process>(registry);
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
-    render_scheduler.attach<vision_process>(registry);
+    // render_scheduler.attach<vision_process>(registry);
     render_scheduler.attach<boids::cell_renderer_process>(registry);
-
-    create_screen_walls(registry);
-
-    for (int i = 0; i < 10; i++)
-    {
-        random_block(registry);
-    }
-
-    //    rect_collider collider(false, Vector2{300,
-    //                                          150});
-    // std::vector<Vector2> corners;
-    // corners.resize(4);
-    //    collider.generate_conners(corners);
-    //
-    //    auto block = registry.create();
-    //    registry.emplace<transform>(
-    //        block, transform{Vector2{400,
-    //                                 300},
-    //                         Vector2Normalize(Vector2{1, 1})});
-    //    registry.emplace<rect_collider>(block, collider);
-    //    registry.emplace<renderable>(block, renderable{BLUE, 1, corners});
-
-    Vector2 random_screen_position_1;
-    Vector2 random_screen_position_2;
-
-    RayCollision collision_point;
-    bool intercepted =
-        random_raycast(registry, &collision_point, &random_screen_position_1,
-                       &random_screen_position_2);
 
     while (!WindowShouldClose())
     {
-        general_scheduler.update(GetFrameTime() * 1000);
-
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawText("BOIDS!", 10, 10, 20, GOLD);
+        
+		general_scheduler.update(GetFrameTime() * 1000);
 
         render_scheduler.update(GetFrameTime() * 1000);
-
-        if (IsKeyPressed(KEY_SPACE))
-        {
-            intercepted = random_raycast(registry, &collision_point,
-                                         &random_screen_position_1,
-                                         &random_screen_position_2);
-        }
-
-        if (intercepted)
-        {
-            DrawCircleV({collision_point.point.x, collision_point.point.y}, 20,
-                        RED);
-        }
-
-        auto direction = Vector2Scale(
-            Vector2Normalize(Vector2Subtract(random_screen_position_2,
-                                             random_screen_position_1)),
-            500);
-        DrawLineEx(random_screen_position_1,
-                   Vector2Add(random_screen_position_1, direction), 1.0f,
-                   intercepted ? RED : GREEN);
-
-        DrawCircleV(random_screen_position_1, 5, BLUE);
-        DrawCircleV(random_screen_position_2, 5, YELLOW);
-
         EndDrawing();
     }
     return 0;

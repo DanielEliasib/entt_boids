@@ -153,6 +153,29 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
                 transform_data.position.y = screen_height;
             }
 
+            float turnfactor = 5;
+            float border     = 50;
+
+            if (transform_data.position.x < border)
+            {
+                movement_data.velocity.x += turnfactor;
+            }
+
+            if (transform_data.position.x > screen_width - border)
+            {
+                movement_data.velocity.x -= turnfactor;
+            }
+
+            if (transform_data.position.y < border)
+            {
+                movement_data.velocity.y += turnfactor;
+            }
+
+            if (transform_data.position.y > screen_height - border)
+            {
+                movement_data.velocity.y -= turnfactor;
+            }
+
             auto speed = Vector2Length(movement_data.velocity);
 
             if (speed <= 1)
@@ -170,8 +193,8 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
     entt::registry& registry;
     int screen_width;
     int screen_height;
-    float min_speed = 10;
-    float max_speed = 30;
+    float min_speed = 80;
+    float max_speed = 160;
 };
 
 #endif // BASE_PROC_HPP

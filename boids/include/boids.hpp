@@ -16,13 +16,13 @@ namespace boids
 
     static entt::entity create_boid(entt::registry& registry, Vector2 position,
                                     Vector2 direction, Vector2 velocity, int side,
-                                    std::vector<Vector2> original_triangle)
+                                    std::vector<Vector2> original_triangle, int id)
     {
         auto entity = registry.create();
 
         registry.emplace<transform>(entity, transform{position, direction});
         registry.emplace<movement>(entity, movement{velocity});
-        registry.emplace<boid>(entity, boid{-1});
+        registry.emplace<boid>(entity, boid{-1, id});
         registry.emplace<renderable>(
             entity,
             renderable(DARKGRAY, static_cast<float>(side), original_triangle));
@@ -64,7 +64,7 @@ namespace boids
 
             auto boid =
                 create_boid(registry, position, direction,
-                            Vector2Scale(direction, 20), side, original_triangle);
+                            Vector2Scale(direction, 20), side, original_triangle, i);
             grid_data.add_boid_to_cell(boid, hash);
         }
     }
@@ -88,8 +88,10 @@ namespace boids
             auto grid_view  = registry.view<boids::grid>();
             auto grid_data  = grid_view.get<boids::grid>(grid_view.front());
 
-            float separation_radius = 30.0f;
-            float cohesion_radius   = 70.0f;
+            float separation_radius = 60.0f;
+            float cohesion_radius   = 90.0f;
+
+            Vector2 target_pos = GetMousePosition();
 
             std::unordered_set<entt::entity> close_boids;
 
@@ -105,6 +107,9 @@ namespace boids
                 int n_cohesion_boids                = 0;
 
                 Vector2 local_flock_direction = Vector2Zero();
+
+                std::vector<Vector2> debug_coheision_boids;
+                std::vector<Vector2> debug_separation_boids;
 
                 for (auto close_boid : close_boids)
                 {
@@ -122,29 +127,71 @@ namespace boids
                     {
                         local_flock_center_separation = Vector2Add(local_flock_center_separation, close_boid_transform.position);
                         n_separation_boids++;
+
+                        if (boid_data.id == debug_boid_id)
+                        {
+                            debug_separation_boids.push_back(close_boid_transform.position);
+                        }
                     }
 
                     if (sqr_distance <= cohesion_radius * cohesion_radius)
                     {
                         local_flock_center_cohesion = Vector2Add(local_flock_center_cohesion, close_boid_transform.position);
                         n_cohesion_boids++;
+
+                        if (boid_data.id == debug_boid_id)
+                        {
+                            debug_coheision_boids.push_back(close_boid_transform.position);
+                        }
                     }
 
                     local_flock_direction = Vector2Add(local_flock_direction, close_boid_direction);
+
+                    if (boid_data.id == debug_boid_id)
+                    {
+                        DrawLineV(close_boid_transform.position,
+                                  Vector2Add(close_boid_transform.position, Vector2Scale(close_boid_direction, 30)), ColorAlpha(RED, 0.2f));
+                    }
                 }
 
                 int n_close_boids = close_boids.size() - 1;
 
                 local_flock_center_separation = n_separation_boids > 0 ? Vector2Scale(local_flock_center_separation, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
-                local_flock_center_cohesion   = n_cohesion_boids > 0 ? Vector2Scale(local_flock_center_cohesion, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
+
+                local_flock_center_cohesion = n_cohesion_boids > 0 ? Vector2Scale(local_flock_center_cohesion, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
+				local_flock_center_cohesion = Vector2Subtract(local_flock_center_cohesion, target_pos);
 
                 local_flock_direction = n_close_boids > 0 ? Vector2Scale(local_flock_direction, 1.0f / (close_boids.size() - 1.0f)) : Vector2Zero();
 
-                Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 0.6f);
-                Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 0.35f);
+                Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 35);
+                Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 60);
 
-                Vector2 alignment_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_direction, Vector2Normalize(movement_data.velocity))), 0.95f);
-                Vector2 total_force     = Vector2Add(Vector2Add(cohesion_force, separation_force), alignment_force);
+                // Vector2 alignment_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_direction, Vector2Normalize(movement_data.velocity))), 50);
+                Vector2 alignment_force = Vector2Scale(local_flock_direction, 50);
+                Vector2 total_force     = Vector2Add(alignment_force, separation_force);
+                total_force             = Vector2Add(total_force, cohesion_force);
+                //---------------------------------------------
+                if (debug_boid_id == boid_data.id)
+                {
+                    DrawCircleLinesV(transform_data.position, separation_radius, ColorAlpha(GREEN, 0.3f));
+                    DrawCircleLinesV(transform_data.position, cohesion_radius, ColorAlpha(RED, 0.3f));
+
+                    // for (auto debug_coheision_boid : debug_coheision_boids)
+                    // {
+                    //     DrawLineV(transform_data.position, debug_coheision_boid, RED);
+                    // }
+
+                    // for (auto debug_separation_boid : debug_separation_boids)
+                    // {
+                    //     DrawLineV(transform_data.position, debug_separation_boid, GREEN);
+                    // }
+                    DrawCircleV(target_pos, 5, VIOLET);
+
+                    DrawLineV(transform_data.position, Vector2Add(transform_data.position, alignment_force), BLUE);
+                    DrawLineV(transform_data.position, Vector2Add(transform_data.position, separation_force), GREEN);
+                    DrawLineV(transform_data.position, Vector2Add(transform_data.position, cohesion_force), RED);
+                }
+
                 //---------------------------------------------
                 movement_data.velocity = Vector2Add(movement_data.velocity, Vector2Scale(total_force, delta_time / 1000.0f));
             }
@@ -152,6 +199,9 @@ namespace boids
 
        protected:
         entt::registry& registry;
+
+        int debug_boid_id = 0;
+
         int screen_width  = 0;
         int screen_height = 0;
     };

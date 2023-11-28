@@ -18,6 +18,13 @@ namespace boids
     struct boid
     {
         int current_cell_id;
+        int id;
+
+        boid(int cell_id, int id) :
+            current_cell_id(cell_id),
+            id(id)
+        {
+        }
     };
 
     struct grid
