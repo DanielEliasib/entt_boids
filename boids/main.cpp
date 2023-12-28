@@ -124,7 +124,7 @@ int main()
 
     entt::scheduler general_scheduler;
     general_scheduler.attach<boids::boid_hashing_process>(registry);
-	general_scheduler.attach<boids::cell_data_process>(registry);
+    general_scheduler.attach<boids::cell_data_process>(registry);
     general_scheduler.attach<boids::boid_algo_process>(registry);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<boids_constraints_process>(registry);
@@ -139,10 +139,12 @@ int main()
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawText("BOIDS!", 10, 10, 20, GOLD);
-        
-		general_scheduler.update(GetFrameTime() * 1000);
 
-        render_scheduler.update(GetFrameTime() * 1000);
+        // auto delta_time = GetFrameTime() * 1000;
+        float delta_time = 27;
+        general_scheduler.update(delta_time);
+
+        render_scheduler.update(delta_time);
         EndDrawing();
     }
     return 0;

@@ -4,8 +4,10 @@
 #include <raylib.h>
 #include <raymath.h>
 
+#include <algorithm>
 #include <base_definitions.hpp>
 #include <boids_definitions.hpp>
+#include <cmath>
 #include <entt/entt.hpp>
 #include <stack>
 #include <unordered_set>
@@ -42,7 +44,7 @@ namespace boids
         float height = sqrt(pow(side, 2) - pow(side / 2, 2));
 
         auto grid = registry.create();
-        registry.emplace<boids::grid>(grid, boids::grid(100));
+        registry.emplace<boids::grid>(grid, boids::grid(40));
         auto grid_data = registry.get<boids::grid>(grid);
 
         Vector2 v1 = Vector2{0 - height / 2, 0 - side / 2.0f};
@@ -93,29 +95,25 @@ namespace boids
 
             Vector2 target_pos = GetMousePosition();
 
-            std::unordered_set<entt::entity> close_boids;
-
             // TODO: remove unecesarry operation already calcualted in grid data process
 
+            int count = 0;
             for (auto [entity, transform_data, movement_data, boid_data] : boids_view.each())
             {
+                count++;
                 auto grid_pre_process_data = grid_data.get_cell_data(boid_data.current_cell_id);
-
-                close_boids.clear();
-                grid_data.get_boids_in_cell(boid_data.current_cell_id, close_boids);
-                int n_close_boids = close_boids.size() - 1;
 
                 auto local_flock_center    = grid_pre_process_data.local_boids_center;
                 auto local_flock_direction = grid_pre_process_data.local_boids_direction;
                 auto local_boid_count      = grid_pre_process_data.boids_count;
 
-                if (n_close_boids > 0)
+                if (local_boid_count - 1 > 0)
                 {
                     local_flock_center = Vector2Subtract(local_flock_center, transform_data.position);
-                    local_flock_center = Vector2Scale(local_flock_center, 1.0f / (local_boid_count - 1.0f));
+                    local_flock_center = Vector2Scale(local_flock_center, 1.0f / (local_boid_count - 1));
 
                     local_flock_direction = Vector2Subtract(local_flock_direction, transform_data.direction);
-                    local_flock_direction = Vector2Scale(local_flock_direction, 1.0f / (local_boid_count - 1.0f));
+                    local_flock_direction = Vector2Scale(local_flock_direction, 1.0f / (local_boid_count - 1));
                 } else
                 {
                     local_flock_center    = Vector2Zero();
@@ -125,16 +123,28 @@ namespace boids
                 std::vector<Vector2> debug_coheision_boids;
                 std::vector<Vector2> debug_separation_boids;
 
-				Vector2 local_flock_center_separation = local_flock_center;
-                Vector2 local_flock_center_cohesion = Vector2Subtract(local_flock_center, target_pos);
+                Vector2 scaled_target_direction = Vector2Scale(Vector2Normalize(Vector2Subtract(target_pos, transform_data.position)), 5);
 
-                Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 35);
-                Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 60);
+                Vector2 local_flock_center_separation = local_flock_center;
+                Vector2 local_flock_center_cohesion   = Vector2Add(local_flock_center, scaled_target_direction);
+
+                // float distance_to_target            = Vector2Distance(transform_data.position, target_pos);
+                // distance_to_target                  = std::clamp(distance_to_target, 0.0f, 100.0f) / 100.0f;
+                // Vector2 scaled_target_pos           = Vector2Scale(target_pos, distance_to_target);
+                // Vector2 local_flock_center_cohesion = Vector2Scale(Vector2Add(local_flock_center, target_pos), 0.5f);
+
+                Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 25);
+                Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 35);
 
                 // Vector2 alignment_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_direction, Vector2Normalize(movement_data.velocity))), 50);
-                Vector2 alignment_force = Vector2Scale(local_flock_direction, 50);
+                Vector2 alignment_force = Vector2Scale(local_flock_direction, 10);
                 Vector2 total_force     = Vector2Add(alignment_force, separation_force);
                 total_force             = Vector2Add(total_force, cohesion_force);
+                // add random noise to the total force
+                float x = GetRandomValue(-100, 100) * (5 / 100.0f);
+                float y = GetRandomValue(-100, 100) * (5 / 100.0f);
+
+                total_force = Vector2Add(total_force, Vector2{x, y});
                 //---------------------------------------------
                 if (debug_boid_id == boid_data.id)
                 {
@@ -155,6 +165,8 @@ namespace boids
                     DrawLineV(transform_data.position, Vector2Add(transform_data.position, alignment_force), BLUE);
                     DrawLineV(transform_data.position, Vector2Add(transform_data.position, separation_force), GREEN);
                     DrawLineV(transform_data.position, Vector2Add(transform_data.position, cohesion_force), RED);
+
+                    DrawLineV({0, 0}, transform_data.position, BLACK);
                 }
 
                 //---------------------------------------------
