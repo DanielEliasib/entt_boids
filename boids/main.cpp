@@ -120,28 +120,30 @@ int main()
 
     entt::registry registry = entt::registry();
 
-    boids::create_n_boids(registry, 400, Vector2{400, 300}, 330);
+    boids::create_n_boids(registry, 1000, Vector2{400, 300}, 400);
 
     entt::scheduler general_scheduler;
-    general_scheduler.attach<boids::boid_hashing_process>(registry);
-    general_scheduler.attach<boids::cell_data_process>(registry);
-    general_scheduler.attach<boids::boid_algo_process>(registry);
-    general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<boids_constraints_process>(registry);
+    general_scheduler.attach<movement_process>(registry);
+    general_scheduler.attach<boids::boid_algo_process>(registry);
+    // general_scheduler.attach<boids::cell_data_process>(registry);
+    general_scheduler.attach<boids::boid_hashing_process>(registry);
 
     entt::scheduler render_scheduler;
     render_scheduler.attach<render_process>(registry);
     // render_scheduler.attach<vision_process>(registry);
-    render_scheduler.attach<boids::cell_renderer_process>(registry);
+    // render_scheduler.attach<boids::cell_renderer_process>(registry);
 
+    SetTargetFPS(60);
     while (!WindowShouldClose())
     {
+        std::cout << "***********" << std::endl;
         BeginDrawing();
         ClearBackground(RAYWHITE);
         DrawText("BOIDS!", 10, 10, 20, GOLD);
+        DrawFPS(10, 30);
 
-        // auto delta_time = GetFrameTime() * 1000;
-        float delta_time = 27;
+        auto delta_time = GetFrameTime() * 1000;
         general_scheduler.update(delta_time);
 
         render_scheduler.update(delta_time);

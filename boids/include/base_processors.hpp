@@ -6,9 +6,11 @@
 #include <rlgl.h>
 
 #include <base_definitions.hpp>
+#include <chrono>
 #include <cmath>
 #include <collision_definitions.hpp>
 #include <entt/entt.hpp>
+#include <iostream>
 
 struct render_process : entt::process<render_process, std::uint32_t>
 {
@@ -19,6 +21,8 @@ struct render_process : entt::process<render_process, std::uint32_t>
 
     void update(delta_type delta_time, void*)
     {
+        auto start = std::chrono::high_resolution_clock::now();
+
         auto render_view = registry.view<transform, renderable>();
         for (auto [entity, transform, renderable] : render_view.each())
         {
@@ -39,7 +43,7 @@ struct render_process : entt::process<render_process, std::uint32_t>
                 DrawCircleV(vertices[1], 1.4f, RED);
                 DrawCircleV(vertices[2], 1.6f, BLUE);
 
-                DrawTriangleLines(vertices[0], vertices[1], vertices[2], BLACK);
+                // DrawTriangleLines(vertices[0], vertices[1], vertices[2], BLACK);
             } else if (renderable.vertices.size() > 3)
             {
                 for (int i = 0; i < renderable.vertices.size(); i++)
@@ -54,9 +58,13 @@ struct render_process : entt::process<render_process, std::uint32_t>
                     DrawCircleV(vertex, 1.2f, LIGHTGRAY);
                 }
             }
-            DrawCircleV(Vector2Zero(), 1.2f, LIGHTGRAY);
+            // DrawCircleV(Vector2Zero(), 1.2f, LIGHTGRAY);
             rlPopMatrix();
         }
+
+        auto end      = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        std::cout << "render_process took " << duration.count() << " microseconds" << std::endl;
     }
 
    protected:
@@ -72,6 +80,8 @@ struct movement_process : entt::process<movement_process, std::uint32_t>
 
     void update(delta_type delta_time, void*)
     {
+        auto start = std::chrono::high_resolution_clock::now();
+
         auto movement_view = registry.view<transform, movement>();
         for (auto [entity, transform, movement] : movement_view.each())
         {
@@ -80,6 +90,10 @@ struct movement_process : entt::process<movement_process, std::uint32_t>
                 Vector2Scale(movement.velocity, delta_time / 1000.0f));
             transform.direction = Vector2Normalize(movement.velocity);
         }
+
+        auto end      = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        std::cout << "movement_process took " << duration.count() << " microseconds" << std::endl;
     }
 
    protected:
@@ -125,6 +139,8 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
 
     void update(delta_type delta_time, void*)
     {
+        auto start = std::chrono::high_resolution_clock::now();
+
         auto moving_entities_view = registry.view<transform, movement>();
 
         for (auto [entity, transform_data, movement_data] : moving_entities_view.each())
@@ -153,7 +169,7 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
                 transform_data.position.y = screen_height;
             }
 
-            float turnfactor = 3;
+            float turnfactor = 1;
             float border     = 50;
 
             if (transform_data.position.x < border)
@@ -181,20 +197,26 @@ struct boids_constraints_process : entt::process<boids_constraints_process, std:
             if (speed <= 1)
                 movement_data.velocity = center_direction;
 
-            if (speed >= min_speed && speed <= max_speed)
-                continue;
+            if (!(speed >= min_speed && speed <= max_speed))
+            {
+                speed                  = std::clamp(speed, min_speed, max_speed);
+                movement_data.velocity = Vector2Scale(Vector2Normalize(movement_data.velocity), speed);
+            }
 
-            speed                  = std::clamp(speed, min_speed, max_speed);
-            movement_data.velocity = Vector2Scale(Vector2Normalize(movement_data.velocity), speed);
+            movement_data.old_velocity = movement_data.velocity;
         }
+
+        auto end      = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+        std::cout << "boids_constraints_process took " << duration.count() << " microseconds" << std::endl;
     }
 
    protected:
     entt::registry& registry;
     int screen_width;
     int screen_height;
-    float min_speed = 3;
-    float max_speed = 30;
+    float min_speed = 10;
+    float max_speed = 70;
 };
 
 #endif // BASE_PROC_HPP

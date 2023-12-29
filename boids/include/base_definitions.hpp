@@ -4,25 +4,31 @@
 #include <raylib.h>
 #include <raymath.h>
 #include <rlgl.h>
+
 #include <entt/entt.hpp>
 
-struct transform {
+struct transform
+{
     Vector2 position;
     Vector2 direction;
 };
 
-struct movement {
+struct movement
+{
     Vector2 velocity;
+    Vector2 old_velocity;
 };
 
-struct renderable {
+struct renderable
+{
     Color color;
     float size;
 
     std::vector<Vector2> vertices;
 
-    renderable(Color color, float size, std::vector<Vector2> &vertices)
-        : color(color), size(size) {
+    renderable(Color color, float size, std::vector<Vector2>& vertices) :
+        color(color), size(size)
+    {
         this->vertices = vertices;
     }
 };

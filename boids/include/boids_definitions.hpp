@@ -5,6 +5,7 @@
 #include <raymath.h>
 #include <rlgl.h>
 
+#include <chrono>
 #include <entt/entt.hpp>
 #include <iostream>
 #include <string>
@@ -69,36 +70,37 @@ namespace boids
 
         std::vector<int> get_close_cells(int cell_id)
         {
-            auto check_func = [&](int x, int y) {
+            auto check_valid_cell = [&](int x, int y) {
                 if (x < 0 || x >= window_width / cell_size)
                     return false;
+
                 if (y < 0 || y >= window_height / cell_size)
                     return false;
+
                 return true;
             };
+
+            const std::array<std::pair<int, int>, 8> NEIGHBORS = {std::make_pair(-1, -1),
+                                                                  std::make_pair(-1, 0),
+                                                                  std::make_pair(-1, 1),
+                                                                  std::make_pair(0, -1),
+                                                                  std::make_pair(0, 1),
+                                                                  std::make_pair(1, -1),
+                                                                  std::make_pair(1, 0),
+                                                                  std::make_pair(1, 1)};
 
             auto ids    = std::vector<int>();
             auto [x, y] = cell_id_to_index(cell_id);
 
-            int n_x = x;
-            int n_y = y - 1;
-            if (check_func(n_x, n_y))
-                ids.push_back(n_x + n_y * (window_width / cell_size));
-
-            n_x = x;
-            n_y = y + 1;
-            if (check_func(n_x, n_y))
-                ids.push_back(n_x + n_y * (window_width / cell_size));
-
-            n_x = x - 1;
-            n_y = y;
-            if (check_func(n_x, n_y))
-                ids.push_back(n_x + n_y * (window_width / cell_size));
-
-            n_x = x + 1;
-            n_y = y;
-            if (check_func(n_x, n_y))
-                ids.push_back(n_x + n_y * (window_width / cell_size));
+            for (const auto& coord : NEIGHBORS)
+            {
+                int nx = x + coord.first;
+                int ny = y + coord.second;
+                if (check_valid_cell(nx, ny))
+                {
+                    ids.push_back(nx + ny * (window_width / cell_size));
+                }
+            }
 
             return ids;
         }
@@ -232,6 +234,8 @@ namespace boids
 
         void update(delta_type delta_time, void*)
         {
+            auto start = std::chrono::high_resolution_clock::now();
+
             auto boids_view  = registry.view<transform, movement, boid>();
             auto grid_view   = registry.view<grid>();
             auto grid_entity = grid_view.front();
@@ -267,6 +271,10 @@ namespace boids
                 //     boid_data.current_cell_id = hash;
                 // }
             }
+
+            auto end      = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            std::cout << "Boid Hashing: " << duration.count() << " microseconds" << std::endl;
         }
 
        protected:

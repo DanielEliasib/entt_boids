@@ -9,7 +9,9 @@
 #include <boids_definitions.hpp>
 #include <cmath>
 #include <entt/entt.hpp>
+#include <execution>
 #include <stack>
+#include <unordered_map>
 #include <unordered_set>
 #include <vector>
 
@@ -23,7 +25,7 @@ namespace boids
         auto entity = registry.create();
 
         registry.emplace<transform>(entity, transform{position, direction});
-        registry.emplace<movement>(entity, movement{velocity});
+        registry.emplace<movement>(entity, movement{velocity, velocity});
         registry.emplace<boid>(entity, boid{-1, id});
         registry.emplace<renderable>(
             entity,
@@ -86,92 +88,132 @@ namespace boids
 
         void update(delta_type delta_time, void*)
         {
+            auto start = std::chrono::high_resolution_clock::now();
+
             auto boids_view = registry.view<transform, movement, boid>();
             auto grid_view  = registry.view<boids::grid>();
             auto grid_data  = grid_view.get<boids::grid>(grid_view.front());
 
-            float separation_radius = 60.0f;
-            float cohesion_radius   = 90.0f;
+            float separation_radius = 50.0f;
+            float cohesion_radius   = 80.0f;
 
             Vector2 target_pos = GetMousePosition();
 
+            const int max_close_boids = boids_view.size_hint() * 0.075f;
+
             // TODO: remove unecesarry operation already calcualted in grid data process
 
-            int count = 0;
-            for (auto [entity, transform_data, movement_data, boid_data] : boids_view.each())
-            {
-                count++;
-                auto grid_pre_process_data = grid_data.get_cell_data(boid_data.current_cell_id);
+            std::for_each(std::execution::par, boids_view.begin(), boids_view.end(),
+                          [&](auto& entity) {
+                              transform& transform_data = registry.get<transform>(entity);
+                              movement& movement_data   = registry.get<movement>(entity);
+                              boid& boid_data           = registry.get<boid>(entity);
 
-                auto local_flock_center    = grid_pre_process_data.local_boids_center;
-                auto local_flock_direction = grid_pre_process_data.local_boids_direction;
-                auto local_boid_count      = grid_pre_process_data.boids_count;
+                              std::unordered_set<entt::entity> close_boids;
 
-                if (local_boid_count - 1 > 0)
-                {
-                    local_flock_center = Vector2Subtract(local_flock_center, transform_data.position);
-                    local_flock_center = Vector2Scale(local_flock_center, 1.0f / (local_boid_count - 1));
+                              int cohesion_boids_count        = 0;
+                              Vector2 local_cohesion_center   = Vector2{0, 0};
+                              Vector2 local_cohesion_velocity = Vector2{0, 0};
 
-                    local_flock_direction = Vector2Subtract(local_flock_direction, transform_data.direction);
-                    local_flock_direction = Vector2Scale(local_flock_direction, 1.0f / (local_boid_count - 1));
-                } else
-                {
-                    local_flock_center    = Vector2Zero();
-                    local_flock_direction = transform_data.direction;
-                }
+                              int separation_boids_count    = 0;
+                              Vector2 local_sepation_center = Vector2{0, 0};
 
-                std::vector<Vector2> debug_coheision_boids;
-                std::vector<Vector2> debug_separation_boids;
+                              auto cell_id     = boid_data.current_cell_id;
+                              auto close_cells = grid_data.get_close_cells(cell_id);
+                              close_cells.push_back(cell_id);
 
-                Vector2 scaled_target_direction = Vector2Scale(Vector2Normalize(Vector2Subtract(target_pos, transform_data.position)), 5);
+                              for (auto id : close_cells)
+                              {
+                                  std::unordered_set<entt::entity> cell_boids;
+                                  grid_data.get_boids_in_cell(cell_id, cell_boids);
 
-                Vector2 local_flock_center_separation = local_flock_center;
-                Vector2 local_flock_center_cohesion   = Vector2Add(local_flock_center, scaled_target_direction);
+                                  close_boids.insert(cell_boids.begin(), cell_boids.end());
+                              }
 
-                // float distance_to_target            = Vector2Distance(transform_data.position, target_pos);
-                // distance_to_target                  = std::clamp(distance_to_target, 0.0f, 100.0f) / 100.0f;
-                // Vector2 scaled_target_pos           = Vector2Scale(target_pos, distance_to_target);
-                // Vector2 local_flock_center_cohesion = Vector2Scale(Vector2Add(local_flock_center, target_pos), 0.5f);
+                              close_boids.erase(entity);
 
-                Vector2 cohesion_force   = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_center_cohesion, transform_data.position)), 25);
-                Vector2 separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_flock_center_separation)), 35);
+                              for (auto close_boid : close_boids)
+                              {
+                                  auto close_boid_transform = registry.get<transform>(close_boid);
+                                  auto close_boid_movement  = registry.get<movement>(close_boid);
 
-                // Vector2 alignment_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_direction, Vector2Normalize(movement_data.velocity))), 50);
-                Vector2 alignment_force = Vector2Scale(local_flock_direction, 10);
-                Vector2 total_force     = Vector2Add(alignment_force, separation_force);
-                total_force             = Vector2Add(total_force, cohesion_force);
-                // add random noise to the total force
-                float x = GetRandomValue(-100, 100) * (5 / 100.0f);
-                float y = GetRandomValue(-100, 100) * (5 / 100.0f);
+                                  auto close_boid_distance_squared = Vector2DistanceSqr(close_boid_transform.position, transform_data.position);
 
-                total_force = Vector2Add(total_force, Vector2{x, y});
-                //---------------------------------------------
-                if (debug_boid_id == boid_data.id)
-                {
-                    DrawCircleLinesV(transform_data.position, separation_radius, ColorAlpha(GREEN, 0.3f));
-                    DrawCircleLinesV(transform_data.position, cohesion_radius, ColorAlpha(RED, 0.3f));
+                                  if (close_boid_distance_squared < separation_radius * separation_radius && separation_boids_count < max_close_boids)
+                                  {
+                                      local_sepation_center = Vector2Add(local_sepation_center, close_boid_transform.position);
+                                      cohesion_boids_count++;
+                                  }
 
-                    // for (auto debug_coheision_boid : debug_coheision_boids)
-                    // {
-                    //     DrawLineV(transform_data.position, debug_coheision_boid, RED);
-                    // }
+                                  if (close_boid_distance_squared < cohesion_radius * cohesion_radius && cohesion_boids_count < max_close_boids)
+                                  {
+                                      local_cohesion_center   = Vector2Add(local_cohesion_center, close_boid_transform.position);
+                                      local_cohesion_velocity = Vector2Add(local_cohesion_velocity, close_boid_movement.old_velocity);
+                                      separation_boids_count++;
+                                  }
+                              }
 
-                    // for (auto debug_separation_boid : debug_separation_boids)
-                    // {
-                    //     DrawLineV(transform_data.position, debug_separation_boid, GREEN);
-                    // }
-                    DrawCircleV(target_pos, 5, VIOLET);
+                              Vector2 cohesion_force   = Vector2Zero();
+                              Vector2 separation_force = Vector2Zero();
 
-                    DrawLineV(transform_data.position, Vector2Add(transform_data.position, alignment_force), BLUE);
-                    DrawLineV(transform_data.position, Vector2Add(transform_data.position, separation_force), GREEN);
-                    DrawLineV(transform_data.position, Vector2Add(transform_data.position, cohesion_force), RED);
+                              if (cohesion_boids_count > 0)
+                              {
+                                  local_cohesion_center   = Vector2Scale(local_cohesion_center, 1.0f / cohesion_boids_count);
+                                  local_cohesion_velocity = Vector2Scale(local_cohesion_velocity, 1.0f / cohesion_boids_count);
 
-                    DrawLineV({0, 0}, transform_data.position, BLACK);
-                }
+                                  cohesion_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_cohesion_center, transform_data.position)), 25);
+                              }
+                              local_cohesion_velocity = Vector2Normalize(local_cohesion_velocity);
 
-                //---------------------------------------------
-                movement_data.velocity = Vector2Add(movement_data.velocity, Vector2Scale(total_force, delta_time / 1000.0f));
-            }
+                              if (separation_boids_count > 0)
+                              {
+                                  local_sepation_center = Vector2Scale(local_sepation_center, 1.0f / separation_boids_count);
+
+                                  separation_force = Vector2Scale(Vector2Normalize(Vector2Subtract(transform_data.position, local_sepation_center)), 40);
+                              }
+
+                              Vector2 temp             = Vector2Subtract(target_pos, transform_data.position);
+                              float distance_to_target = Vector2Length(temp);
+                              float target_scale       = std::clamp(distance_to_target, 0.0f, cohesion_radius) * 10 / cohesion_radius;
+
+                              Vector2 target_force = Vector2Scale(temp, target_scale / distance_to_target);
+
+                              // Vector2 alignment_force = Vector2Scale(Vector2Normalize(Vector2Subtract(local_flock_direction, Vector2Normalize(movement_data.velocity))), 50);
+                              Vector2 alignment_force = Vector2Scale(local_cohesion_velocity, 20);
+
+                              Vector2 total_force = Vector2Add(alignment_force, separation_force);
+                              total_force         = Vector2Add(total_force, cohesion_force);
+                              total_force         = Vector2Add(total_force, target_force);
+
+                              // add random noise to the total force
+                              float x = GetRandomValue(-100, 100) * (5 / 100.0f);
+                              float y = GetRandomValue(-100, 100) * (5 / 100.0f);
+
+                              total_force = Vector2Add(total_force, Vector2{x, y});
+
+                              movement_data.velocity = Vector2Add(movement_data.old_velocity, Vector2Scale(total_force, delta_time / 1000.0f));
+
+                              //---------------------------------------------
+                              if (debug_boid_id == boid_data.id)
+                              {
+                                  DrawCircleLinesV(transform_data.position, separation_radius, ColorAlpha(GREEN, 0.6f));
+                                  DrawCircleLinesV(transform_data.position, cohesion_radius, ColorAlpha(RED, 0.6f));
+
+                                  DrawCircleV(target_pos, 5, VIOLET);
+
+                                  DrawLineV(transform_data.position, Vector2Add(transform_data.position, alignment_force), BLUE);
+                                  DrawLineV(transform_data.position, Vector2Add(transform_data.position, separation_force), GREEN);
+                                  DrawLineV(transform_data.position, Vector2Add(transform_data.position, cohesion_force), RED);
+                                  DrawLineV(transform_data.position, Vector2Add(transform_data.position, target_force), VIOLET);
+
+                                  DrawLineV(transform_data.position, Vector2Add(transform_data.position, total_force), BLACK);
+                              }
+                              //---------------------------------------------
+                          });
+
+            auto end      = std::chrono::high_resolution_clock::now();
+            auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
+            std::cout << "boid_algo_process took " << duration.count() << " microseconds" << std::endl;
         }
 
        protected:
