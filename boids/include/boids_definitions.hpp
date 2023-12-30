@@ -230,7 +230,9 @@ namespace boids
         using delta_type = std::uint32_t;
 
         boid_hashing_process(entt::registry& registry) :
-            registry(registry) {}
+            registry(registry)
+        {
+        }
 
         void update(delta_type delta_time, void*)
         {
@@ -256,20 +258,6 @@ namespace boids
                 }
                 grid_data.add_boid_to_cell(entity, hash);
                 boid_data.current_cell_id = hash;
-
-                // if (boid_data.current_cell_id != hash) {
-                //     grid_data.remove_boid_from_cell(entity,
-                //                                     boid_data.current_cell_id);
-                //     grid_data.add_boid_to_cell(entity, hash);
-                //
-                //     boid_data.current_cell_id = hash;
-                //     return;
-                // }
-                //
-                // if (!grid_data.is_boid_in_cell(entity, hash)) {
-                //     grid_data.add_boid_to_cell(entity, hash);
-                //     boid_data.current_cell_id = hash;
-                // }
             }
 
             auto end      = std::chrono::high_resolution_clock::now();
@@ -305,16 +293,6 @@ namespace boids
                 Color color = !grid_data.is_cell_empty(cell_id)
                                   ? RED
                                   : ColorAlpha(GRAY, 0.1f);
-
-                auto cell_data = grid_data.get_cell_data(cell_id);
-
-                auto local_boids_center    = Vector2Scale(cell_data.local_boids_center, 1.0f / cell_data.boids_count);
-                auto local_boids_direction = Vector2Scale(cell_data.local_boids_direction, 1.0f / cell_data.boids_count);
-
-                Color test_color = BLUE;
-                DrawCircleV(local_boids_center, 3, test_color);
-                DrawLineV(local_boids_center, Vector2Add(local_boids_center, Vector2Scale(local_boids_direction, 35)), DARKBLUE);
-                DrawText(std::to_string(cell_data.boids_count).c_str(), local_boids_center.x, local_boids_center.y, 10, BLACK);
 
                 DrawRectangleLines(x * grid_data.cell_size, y * grid_data.cell_size,
                                    grid_data.cell_size, grid_data.cell_size, color);
