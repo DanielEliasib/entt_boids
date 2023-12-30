@@ -179,7 +179,7 @@ namespace boids
 
                 Vector2 temp             = Vector2Subtract(target_pos, transform_data.position);
                 float distance_to_target = Vector2Length(temp);
-                float target_scale       = std::clamp(distance_to_target, 0.0f, cohesion_radius) * 20 / cohesion_radius;
+                float target_scale       = std::clamp(distance_to_target, 0.0f, cohesion_radius) * 5.0f / cohesion_radius;
 
                 Vector2 target_force = Vector2Scale(temp, target_scale / distance_to_target);
 
