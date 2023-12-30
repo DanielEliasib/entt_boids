@@ -3,7 +3,6 @@
 ![boids](./resources/images/boids.png)
 
 A simple boids implementation using [EnTT](https://github.com/skypjack/entt) and [Raylib](https://github.com/raysan5/raylib).
-.
 
 ![boids-gif](./resources/images/boids-movement.gif)
 
