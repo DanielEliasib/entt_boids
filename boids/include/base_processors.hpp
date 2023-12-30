@@ -19,6 +19,8 @@ struct render_process : entt::process<render_process, std::uint32_t>
     render_process(entt::registry& registry) :
         registry(registry) {}
 
+    const Color border_color = ColorAlpha(BLACK, 0.5);
+
     void update(delta_type delta_time, void*)
     {
         auto start = std::chrono::high_resolution_clock::now();
@@ -39,25 +41,26 @@ struct render_process : entt::process<render_process, std::uint32_t>
                 DrawTriangle(vertices[0], vertices[1], vertices[2],
                              renderable.color);
 
-                DrawCircleV(vertices[0], 1.4f, GREEN);
-                DrawCircleV(vertices[1], 1.4f, RED);
-                DrawCircleV(vertices[2], 1.6f, BLUE);
+                // DrawCircleV(vertices[0], 1.4f, GREEN);
+                // DrawCircleV(vertices[1], 1.4f, RED);
+                // DrawCircleV(vertices[2], 1.6f, BLUE);
 
-                // DrawTriangleLines(vertices[0], vertices[1], vertices[2], BLACK);
-            } else if (renderable.vertices.size() > 3)
-            {
-                for (int i = 0; i < renderable.vertices.size(); i++)
-                {
-                    DrawLineEx(renderable.vertices[i],
-                               renderable.vertices[(i + 1) %
-                                                   renderable.vertices.size()],
-                               1.0f, renderable.color);
-                }
-                for (auto vertex : vertices)
-                {
-                    DrawCircleV(vertex, 1.2f, LIGHTGRAY);
-                }
+                DrawTriangleLines(vertices[0], vertices[1], vertices[2], border_color);
             }
+            // else if (renderable.vertices.size() > 3)
+            //          {
+            //              for (int i = 0; i < renderable.vertices.size(); i++)
+            //              {
+            //                  DrawLineEx(renderable.vertices[i],
+            //                             renderable.vertices[(i + 1) %
+            //                                                 renderable.vertices.size()],
+            //                             1.0f, renderable.color);
+            //              }
+            //              for (auto vertex : vertices)
+            //              {
+            //                  DrawCircleV(vertex, 1.2f, LIGHTGRAY);
+            //              }
+            //          }
             // DrawCircleV(Vector2Zero(), 1.2f, LIGHTGRAY);
             rlPopMatrix();
         }

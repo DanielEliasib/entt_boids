@@ -113,6 +113,11 @@ void random_block(entt::registry& registry)
     registry.emplace<renderable>(block, renderable{BLUE, 1, corners});
 }
 
+static const Color background  = {15, 15, 15, 255};
+static const Color yellow      = {204, 191, 147, 255};
+static const Color yellow_var1 = {204, 184, 147, 255};
+static const Color yellow_dark = {153, 144, 111, 255};
+
 int main()
 {
     InitWindow(800, 600, "BOIDS");
@@ -120,28 +125,27 @@ int main()
 
     entt::registry registry = entt::registry();
 
-    boids::create_n_boids(registry, 1000, Vector2{400, 300}, 400);
+    boids::create_n_boids(registry, 500, Vector2{400, 300}, 400);
 
     entt::scheduler general_scheduler;
     general_scheduler.attach<boids_constraints_process>(registry);
     general_scheduler.attach<movement_process>(registry);
     general_scheduler.attach<boids::boid_algo_process>(registry);
-    // general_scheduler.attach<boids::cell_data_process>(registry);
     general_scheduler.attach<boids::boid_hashing_process>(registry);
 
     entt::scheduler render_scheduler;
-    render_scheduler.attach<render_process>(registry);
-    // render_scheduler.attach<vision_process>(registry);
     // render_scheduler.attach<boids::cell_renderer_process>(registry);
+    render_scheduler.attach<render_process>(registry);
 
     SetTargetFPS(60);
     while (!WindowShouldClose())
     {
         std::cout << "***********" << std::endl;
         BeginDrawing();
-        ClearBackground(RAYWHITE);
-        DrawText("BOIDS!", 10, 10, 20, GOLD);
-        DrawFPS(10, 30);
+        ClearBackground(background);
+        DrawText("BOIDS!", 12, 12, 30, yellow_dark);
+        DrawText("BOIDS!", 10, 10, 30, yellow);
+        DrawFPS(10, 40);
 
         auto delta_time = GetFrameTime() * 1000;
         general_scheduler.update(delta_time);
